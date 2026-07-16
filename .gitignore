@@ -1,0 +1,14 @@
+/Ip_cam_survilance/
+/OpenCV_and_rtsp_video_processing-master/
+/photos/
+/photos — копия/
+/system_settings/
+.gitignore
+bot.db
+Bot_credentials.py
+bottoken.txt
+cameras.db
+t.jpg
+users.db
+video_presentation_overview.md
+yolo11n.pt

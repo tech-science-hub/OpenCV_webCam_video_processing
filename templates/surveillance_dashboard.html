@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Surveillance Dashboard</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --fs-xs:clamp(9px,1.8vw,12px);
+  --fs-sm:clamp(11px,2.2vw,14px);
+  --fs-md:clamp(13px,2.6vw,16px);
+  --sidebar-w:clamp(70px,18vw,130px);
+  --topbar-h:clamp(28px,5vh,40px);
+  --bottombar-h:clamp(38px,7vh,52px);
+  --gap:clamp(4px,1vw,10px);
+  --pad:clamp(4px,1.2vw,12px);
+  --btn-pad-v:clamp(6px,1.2vh,10px);
+  --btn-pad-h:clamp(5px,1.2vw,12px);
+  --radius:clamp(3px,.6vw,4px);
+}
+html,body{height:100%;width:100%;overflow:hidden}
+body{font-family:'Courier New',monospace;background:#0a0f0a}
+.wrap{display:flex;flex-direction:column;height:100vh;width:100%;background:#0a0f0a;color:#7fff7f;border:1px solid #1a3a1a;overflow:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);height:var(--topbar-h);background:#050a05;border-bottom:1px solid #1a3a1a;font-size:var(--fs-xs);letter-spacing:.15em;color:#4a8a4a;position:relative;flex-shrink:0}
+.topbar .title{position:absolute;left:50%;transform:translateX(-50%);letter-spacing:.3em;color:#7fff7f;font-size:var(--fs-sm)}
+.clock{color:#7fff7f;font-size:var(--fs-sm);font-weight:500;letter-spacing:.1em}
+.middle{display:flex;flex:1;overflow:hidden}
+.sidebar{width:var(--sidebar-w);background:#050a05;border-right:1px solid #1a3a1a;display:flex;flex-direction:column;padding:var(--pad) calc(var(--pad)*.6);gap:var(--gap);flex-shrink:0}
+.sidebar-label{font-size:var(--fs-xs);letter-spacing:.2em;color:#2a5a2a;margin-bottom:2px;padding-left:2px}
+.sbtn{background:transparent;border:1px solid #1a3a1a;color:#5aaa5a;font-family:inherit;font-size:var(--fs-xs);letter-spacing:.1em;padding:var(--btn-pad-v) var(--btn-pad-h);border-radius:var(--radius);cursor:pointer;text-align:left;transition:all .15s;position:relative;display:flex;align-items:center;gap:5px;min-height:clamp(28px,5vh,40px)}
+.sbtn i{font-size:var(--fs-md);flex-shrink:0}
+.sbtn span.lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sbtn:hover{border-color:#7fff7f;color:#7fff7f;background:#0d1a0d}
+.sbtn.active{border-color:#7fff7f;color:#7fff7f;background:#0d1a0d}
+
+.sbtn.warning{
+    border-color:#ffff66;
+    color:#ffff66;
+}
+
+.sbtn.warning:hover{
+    border-color:#ffffaa;
+    color:#ffffaa;
+    background:#1a1a0d;
+}
+
+.status-dot{
+    display:inline-block;
+    width:8px;
+    height:8px;
+    border-radius:50%;
+    background:#7fff7f;
+}
+
+.status-dot.blink{
+    animation: blink-status 1s infinite;
+}
+
+.system-status{
+    display:flex;
+    flex-wrap:wrap;
+    gap:18px;
+    align-items:center;
+
+    margin-bottom:12px;
+    padding:8px 12px;
+
+    border:1px solid #1a3a1a;
+    border-radius:6px;
+
+    background:#0b120b;
+
+    color:#7fff7f;
+    font-size:13px;
+    letter-spacing:.08em;
+}
+
+.system-status span{
+    white-space:nowrap;
+}
+
+.system-status b{
+    color:#ffff66;
+    font-weight:600;
+}
+
+@keyframes blink-status{
+    0%,100%{opacity:1}
+    50%{opacity:0.2}
+}
+.main{flex:1;display:flex;flex-direction:column;position:relative;background:#080d08;min-width:0}
+.field{flex:1;position:relative;overflow:hidden}
+.camera-grid{
+
+  position:absolute;
+  inset:0;
+  z-index:1;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  padding: 12px;
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+
+.cam-box{
+
+  position:relative;
+
+  background:#000;
+
+  border:1px solid #1a3a1a;
+
+  overflow:hidden;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  min-height:220px;
+
+  aspect-ratio:16/9;
+}
+.cam-box video,
+.cam-box img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+}
+.cam-label{
+  position:absolute;
+
+  top:3px;
+  right:6px;
+
+  z-index:2;
+
+  font-size:11px;
+
+  color:#7fff7f;
+
+  background:rgba(0,0,0,.5);
+
+  padding:2px 6px;
+
+  border:1px solid #1a3a1a;
+}
+.scanline{position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,0,0.015) 3px,rgba(0,255,0,0.015) 4px);pointer-events:none;z-index:0}
+.grid-overlay{position:absolute;inset:0;background-image:linear-gradient(rgba(0,255,0,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,0,.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
+.rec-dot{position:absolute;top:10px;left:12px;display:flex;align-items:center;gap:6px;z-index:1;font-size:var(--fs-xs);color:#4a8a4a;letter-spacing:.15em}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.btns-area {
+  display: grid;
+  gap: var(--gap);
+  grid-template-columns: repeat(2, 1fr);
+  width: 100%;
+  height: 100%;
+}
+.bottombar{height:var(--bottombar-h);background:#050a05;border-top:1px solid #1a3a1a;display:flex;align-items:center;gap:var(--gap);padding:0 var(--pad);flex-shrink:0;overflow-x:auto}
+.bbtn{background:transparent;border:1px solid #1a3a1a;color:#5aaa5a;font-family:inherit;font-size:var(--fs-xs);letter-spacing:.1em;padding:0 var(--btn-pad-h);border-radius:var(--radius);cursor:pointer;white-space:nowrap;transition:all .15s;height:clamp(24px,4.5vh,32px);display:flex;align-items:center;gap:4px;flex-shrink:0}
+.bbtn i{font-size:var(--fs-sm)}
+.bbtn:hover{border-color:#7fff7f;color:#7fff7f;background:#0d1a0d}
+.bbtn.start:hover{border-color:#7fff7f;color:#7fff7f}
+.bbtn.stop:hover{border-color:#aa2222;color:#ff6666}
+.bbtn.reset:hover{border-color:#aaaa22;color:#aaaa22}
+.bbtn.empty{min-width:clamp(28px,6vw,50px)}
+.status-bar{display:flex;align-items:center;gap:16px;margin-left:auto;font-size:var(--fs-xs);color:#2a5a2a;letter-spacing:.1em;flex-shrink:0}
+.status-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#7fff7f;margin-right:4px}
+
+.login-screen{position:fixed;inset:0;background:#050a05;z-index:999;display:flex;align-items:center;justify-content:center}
+.login-screen.hidden{display:none}
+.login-box{background:#060d06;border:1px solid #2a6a2a;border-radius:6px;padding:clamp(20px,4vw,36px);width:clamp(240px,90%,360px);display:flex;flex-direction:column;gap:16px}
+.login-logo{display:flex;flex-direction:column;align-items:center;gap:8px;padding-bottom:8px;border-bottom:1px solid #1a3a1a}
+.login-logo i{font-size:clamp(28px,5vw,40px);color:#7fff7f}
+.login-logo span{font-size:var(--fs-sm);letter-spacing:.35em;color:#7fff7f}
+.login-logo small{font-size:var(--fs-xs);letter-spacing:.2em;color:#2a5a2a}
+.login-error{font-size:var(--fs-xs);color:#ff4444;letter-spacing:.1em;text-align:center;min-height:14px}
+.login-actions{display:flex;flex-direction:column;gap:8px}
+.login-btn{font-family:inherit;font-size:var(--fs-sm);letter-spacing:.2em;padding:var(--btn-pad-v);border-radius:var(--radius);cursor:pointer;transition:all .15s;border:1px solid #2a6a2a;background:transparent;color:#7fff7f;width:100%}
+.login-btn:hover{background:#0d2a0d;border-color:#7fff7f}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#060d06;border:1px solid #2a6a2a;border-radius:6px;padding:clamp(12px,2.5vw,22px);width:clamp(240px,70%,420px);max-height:80vh;display:flex;flex-direction:column;gap:12px;overflow:hidden}
+.modal-title{font-size:var(--fs-sm);letter-spacing:.25em;color:#7fff7f;border-bottom:1px solid #1a3a1a;padding-bottom:8px;display:flex;align-items:center;gap:8px}
+.modal-title i{font-size:var(--fs-md)}
+.field-row{display:flex;flex-direction:column;gap:5px}
+.field-row label{font-size:var(--fs-xs);color:#4a8a4a;letter-spacing:.15em}
+.field-row input{background:#0a140a;border:1px solid #1a4a1a;color:#7fff7f;font-family:inherit;font-size:var(--fs-xs);padding:7px 10px;border-radius:var(--radius);outline:none;width:100%;letter-spacing:.08em}
+.field-row input:focus{border-color:#7fff7f}
+.field-row input::placeholder{color:#2a5a2a}
+.rtsp-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:clamp(80px,20vh,160px);padding-right:2px}
+.rtsp-row{
+    display:flex;
+    flex-direction:column;
+    gap:6px;
+    padding:6px;
+    border:1px solid #1a3a1a;
+    border-radius:4px;
+}
+.rtsp-row span{font-size:var(--fs-xs);color:#4a8a4a;min-width:clamp(40px,8vw,56px);letter-spacing:.08em}
+.rtsp-row input{flex:1;background:#0a140a;border:1px solid #1a4a1a;color:#7fff7f;font-family:inherit;font-size:var(--fs-xs);padding:6px 8px;border-radius:var(--radius);outline:none;letter-spacing:.05em}
+.rtsp-row input:focus{border-color:#7fff7f}
+.rtsp-row input::placeholder{color:#2a4a2a}
+.modal-actions{display:flex;gap:8px;margin-top:4px;justify-content:flex-end}
+.mBtn{font-family:inherit;font-size:var(--fs-xs);letter-spacing:.12em;padding:var(--btn-pad-v) clamp(12px,3vw,20px);border-radius:var(--radius);cursor:pointer;transition:all .15s}
+.mBtn.approve{background:transparent;border:1px solid #2a6a2a;color:#7fff7f}
+.mBtn.approve:hover{background:#0d2a0d;border-color:#7fff7f}
+.mBtn.cancel{background:transparent;border:1px solid #3a1a1a;color:#aa4444}
+.mBtn.cancel:hover{background:#1a0808;border-color:#aa2222;color:#ff6666}
+
+  html,
+  body{
+
+    height:auto;
+
+    overflow-y:auto;
+
+    overflow-x:hidden;
+  }
+
+  body{
+    position:relative;
+  }
+
+.wrap{
+
+    height:auto;
+
+    min-height:100vh;
+
+    overflow:visible;
+  }
+
+.middle{
+    display:flex;
+    flex-direction:row;
+    overflow:hidden;
+}
+
+.sidebar{
+    width:var(--sidebar-w);
+    flex-direction:column;
+    overflow-y:auto;
+    overflow-x:hidden;
+    border-right:1px solid #1a3a1a;
+    border-bottom:none;
+}
+
+.main{
+
+    overflow:visible;
+  }
+
+.field{
+
+    overflow:visible;
+
+    height:auto;
+
+    min-height:auto;
+  }
+
+.camera-grid{
+    min-height: 0;
+    position:absolute;
+    inset:0;
+    z-index:1;
+    padding:8px;
+    display:grid;
+    gap:12px;
+    overflow:auto;
+  }
+
+.camera-grid.single-camera{
+  grid-template-columns:1fr;
+  place-items:center;
+}
+
+.camera-grid.single-camera .cam-box{
+  width:min(100%, 1200px);
+  height:min(100%, 75vh);
+  aspect-ratio:16/9;
+}
+
+.camera-grid.multi-camera{
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  grid-auto-rows:minmax(0, 1fr);
+  padding-top: 50px;
+}
+
+.camera-grid.multi-camera .cam-box{
+  min-height:0;
+  aspect-ratio:auto;
+}
+
+.cam-box{
+    min-width:0;
+    min-height:0;
+    max-width:100%;
+    max-height:100%;
+    width:100%;
+    height:100%;
+    aspect-ratio:auto;
+  }
+.cam-box img,
+.cam-box video{
+  width:100%;
+  height:100%;
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+  display:block;
+}
+.cam-label{
+  position:absolute;
+  top:6px;
+  right:6px;
+  z-index:2;
+  font-size:11px;
+  color:#7fff7f;
+  background:rgba(0,0,0,.55);
+  padding:2px 6px;
+  border:1px solid #1a3a1a;
+}
+.snapshots-modal{
+  width:clamp(280px,85%,900px);
+}
+.snapshots-content{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
+  gap:10px;
+  max-height:60vh;
+  overflow-y:auto;
+}
+.snapshot-img{
+  width:100%;
+  aspect-ratio:16/9;
+  object-fit:cover;
+  border:1px solid #1a3a1a;
+  cursor:pointer;
+}
+.snapshot-empty{
+  color:#7fff7f;
+  font-size:12px;
+  letter-spacing:.12em;
+}
+.image-viewer-box{
+    width:90vw;
+    max-width:100%;
+    height:90vh;
+    max-height:70vh;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+}
+.image-viewer-box img{
+    max-width:100%;
+    max-height:100%;
+    object-fit:contain;
+}
+
+.viewer-image{
+    max-width:90vw;
+    max-height:90vh;
+    object-fit:contain;
+}
+
+.viewer-btn{
+
+    position:absolute;
+
+    top:50%;
+    transform:translateY(-50%);
+
+    width:46px;
+    height:46px;
+
+    border:none;
+
+    background:rgba(0,0,0,.5);
+
+    color:#7fff7f;
+
+    font-size:34px;
+
+    cursor:pointer;
+
+    border-radius:50%;
+}
+
+.viewer-prev{
+    left:20px;
+}
+
+.viewer-next{
+    right:20px;
+}
+
+.viewer-btn:hover{
+    background:#0d1a0d;
+}
+
+
+.bottombar{
+
+    position:sticky;
+
+    bottom:0;
+
+    z-index:20;
+
+    background:#050a05;
+  }
+.btns-area {
+    grid-template-columns: 1fr;
+  }
+.settings-modal{
+  width:clamp(280px,75%,560px);
+}
+
+.settings-grid{
+  display:grid;
+  grid-template-columns:180px 1fr;
+  gap:10px 12px;
+  align-items:center;
+}
+
+.settings-grid label{
+  font-size:var(--fs-xs);
+  color:#4a8a4a;
+  letter-spacing:.12em;
+}
+
+.settings-grid input{
+  background:#0a140a;
+  border:1px solid #1a4a1a;
+  color:#7fff7f;
+  font-family:inherit;
+  font-size:var(--fs-xs);
+  padding:7px 10px;
+  border-radius:var(--radius);
+  outline:none;
+  width:100%;
+}
+
+.settings-grid input:focus{
+  border-color:#7fff7f;
+}
+@media(max-width:768px), (orientation: portrait){
+  .middle{
+    flex-direction:column;
+    overflow:visible;
+  }
+
+  .sidebar{
+    width:100%;
+    flex-direction:row;
+    overflow-x:auto;
+    overflow-y:hidden;
+    border-right:none;
+    border-bottom:1px solid #1a3a1a;
+  }
+  
+  .sidebar-label{
+    display:none;
+  }
+  
+  .camera-grid{
+    position:relative;
+    inset:auto;
+    padding:12px;
+    grid-template-columns:1fr !important;
+    overflow:visible;
+  }
+
+  .camera-grid.single-camera .cam-box,
+  .camera-grid.multi-camera .cam-box{
+    width:100%;
+    height:auto;
+    min-height:220px;
+    aspect-ratio:16/9;
+  }
+
+
+@media(max-width:600px){
+  .settings-grid{
+    grid-template-columns:1fr;
+  }
+}
+
+}
+
+</style>
+</head>
+<body>
+<div class="login-screen" id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <i class="ti ti-shield-lock"></i>
+      <span>SURVEILLANCE</span>
+      <small>SYSTEM v2.1 — AUTHORISATION REQUIRED</small>
+    </div>
+    <div class="field-row">
+      <label>LOGIN</label>
+      <input type="text" id="authLogin" placeholder="username" autocomplete="username">
+    </div>
+    <div class="field-row">
+      <label>PASSWORD</label>
+      <input type="password" id="authPass" placeholder="password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-actions">
+      <button class="login-btn" onclick="doLogin()"><i class="ti ti-login" style="margin-right:6px"></i>LOGIN</button>
+    </div>
+  </div>
+</div>
+
+<div class="wrap">
+  <div class="topbar">
+    <span>SYSTEM v2.1</span>
+    <span class="title">SURVEILLANCE</span>
+    <span class="clock" id="clock">--:--:--</span>
+  </div>
+  <div class="middle">
+    <div class="sidebar">
+      <div class="sidebar-label">SETTINGS</div>
+      <button class="sbtn active" id='cameraBtn' onclick="selectSide(this,'camera');openModal()"><i class="ti ti-camera"></i><span class="lbl">camera</span></button>
+      <button class="sbtn" id='botBtn' onclick="selectSide(this,'bot');openBotModal()"><i class="ti ti-robot"></i><span class="lbl">bot</span></button>
+      <button class="sbtn" onclick="selectSide(this,'files');openFilesModal()"><i class="ti ti-folder"></i><span class="lbl">files</span></button>
+      <button class="sbtn" onclick="selectSide(this,'settings');openSettingsAuthModal()"><i class="ti ti-settings"></i><span class="lbl">authorization</span></button>
+      <button class="sbtn" onclick="selectSide(this,'settings');openSettingsModal()"><i class="ti ti-settings"></i><span class="lbl">settings</span></button>
+      <button class="sbtn" onclick="selectSide(this,'alerts')"><i class="ti ti-bell"></i><span class="lbl">alerts</span></button>
+      <button class="sbtn" onclick="selectSide(this,'log')"><i class="ti ti-list"></i><span class="lbl">log</span></button>
+    </div>
+    <div class="main">
+      <div class="field">
+        <div class="scanline"></div>
+        <div class="grid-overlay"></div>
+        <div id="systemStatus" class="system-status">
+
+            <span id="stSchedule">
+                AUTO START:
+                <b>OFF</b>
+            </span>
+
+            <span id="stDelete">
+                AUTO DELETE:
+                <b>OFF</b>
+            </span>
+
+            <span id="stPhotoDir">
+                PHOTO PATH:
+                <b>OFF</b>
+            </span>
+
+            <span id="stCameras">
+                CAMERAS:
+                <b>0</b>
+            </span>
+
+            <span id="stBot">
+                BOT:
+                <b>NOT SET</b>
+            </span>
+
+            <span id="stDetection">
+                DETECTION:
+                <b>STOPPED</b>
+            </span>
+
+        </div>
+        <div id="cameraGrid" class="camera-grid"></div>
+        <div class="btns-area"></div>
+
+        <div class="overlay" id="overlay" onclick="overlayClick(event)">
+          <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-title"><i class="ti ti-camera"></i>CAMERA SETTINGS</div>
+            
+            <div class="field-row">
+              <label>AMOUNT OF CAMERAS</label>
+              <input type="number" id="camCount" min="1" max="16" value="1" placeholder="e.g. 4" oninput="buildRtsp()">
+            </div>
+            
+            <div class="field-row">
+              <label>RTSP LINKS</label>
+              <div class="rtsp-list" id="rtspList">
+                 <div class="rtsp-row"><span>CAM 1</span><input type="text" placeholder="rtsp://user:pass@ip:port/stream"></div>
+                <!-- Dynamic rows generated by buildRtsp() -->
+              </div>
+            </div>
+            
+            <div class="modal-actions">
+              <button class="mBtn cancel" onclick="closeModal()"><i class="ti ti-x" style="font-size:11px;margin-right:4px"></i>CANCEL</button>
+              <button class="mBtn approve" onclick="approve()"><i class="ti ti-check" style="font-size:11px;margin-right:4px"></i>APPROVE</button>
+            </div>
+          </div>
+        </div>
+        <div class="overlay" id="snapshotsOverlay" onclick="snapshotsOverlayClick(event)">
+          <div class="modal snapshots-modal" onclick="event.stopPropagation()">
+            <div class="modal-title">
+              <i class="ti ti-photo"></i>
+              SAVED PICTURES
+            </div>
+
+            <div id="snapshotsContent" class="snapshots-content">
+              Loading...
+            </div>
+
+            <div class="modal-actions">
+              <button class="mBtn cancel" onclick="closeSnapshotsModal()">
+                <i class="ti ti-x" style="font-size:11px;margin-right:4px"></i>
+                CLOSE
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="overlay" id="viewerOverlay" onclick="viewerOverlayClick(event)">
+
+          <button
+              class="viewer-btn viewer-prev"
+              onclick="prevImage(event)">
+              &#10094;
+          </button>
+
+          <img id="viewerImage" class="viewer-image" onclick="event.stopPropagation()">
+
+          <button
+              class="viewer-btn viewer-next"
+              onclick="nextImage(event)">
+              &#10095;
+          </button>
+
+        </div>
+        <div class="overlay" id="botOverlay" onclick="botOverlayClick(event)">
+          <div class="modal" onclick="event.stopPropagation()">
+            <div class="modal-title"><i class="ti ti-robot"></i>BOT CREDENTIALS</div>
+            <div class="field-row">
+              <label>BOT TOKEN API</label>
+              <input type="password" id="botToken" placeholder="e.g. 123456:ABCdef...">
+            </div>
+            <div class="field-row">
+              <label>API URL</label>
+              <input type="text" id="botApiUrl" placeholder="https://api.example.com/bot">
+            </div>
+            <div class="field-row">
+              <label>USERNAME</label>
+              <input type="text" id="botUsername" placeholder="bot_username">
+            </div>
+            <div class="field-row">
+              <label>CHAT ID</label>
+              <input type="text" id="botId" placeholder="id key">
+            </div>
+            <div class="modal-actions">
+              <button class="mBtn cancel" onclick="closeBotModal()"><i class="ti ti-x" style="font-size:11px;margin-right:4px"></i>CANCEL</button>
+              <button class="mBtn approve" onclick="approveBot()"><i class="ti ti-check" style="font-size:11px;margin-right:4px"></i>APPROVE</button>
+            </div>
+          </div>
+        </div>
+
+      <div class="overlay" id="authSettingsOverlay" onclick="AuthSettingsOverlayClick(event)">
+        <div class="modal" onclick="event.stopPropagation()">
+
+          <div class="modal-title">
+            <i class="ti ti-settings"></i>
+            AUTHORISATION SETTINGS
+          </div>
+
+          <div class="field-row">
+            <label>CURRENT PASSWORD</label>
+            <input
+              type="password"
+              id="currentPassword"
+              placeholder="current password">
+          </div>
+
+          <div class="field-row">
+            <label>NEW LOGIN</label>
+            <input
+              type="text"
+              id="newLogin"
+              placeholder="new username">
+          </div>
+
+          <div class="field-row">
+            <label>NEW PASSWORD</label>
+            <input
+              type="password"
+              id="newPassword"
+              placeholder="new password">
+          </div>
+
+          <div class="field-row">
+            <label>CONFIRM PASSWORD</label>
+            <input
+              type="password"
+              id="confirmPassword"
+              placeholder="confirm password">
+          </div>
+
+          <div class="modal-actions">
+
+            <button
+              class="mBtn cancel"
+              onclick="closeSettingsAuthModal()">
+
+              <i class="ti ti-x"
+                style="font-size:11px;margin-right:4px"></i>
+
+              CANCEL
+            </button>
+
+            <button
+              class="mBtn approve"
+              onclick="saveSettings()">
+
+              <i class="ti ti-check"
+                style="font-size:11px;margin-right:4px"></i>
+
+              SAVE
+            </button>
+
+          </div>
+
+        </div>
+      </div>
+      
+      <div class="overlay" id="settingsOverlay" onclick="settingsOverlayClick(event)">
+        <div class="modal settings-modal" onclick="event.stopPropagation()">
+
+          <div class="modal-title">
+            <i class="ti ti-settings"></i>
+            GENERAL SETTINGS
+          </div>
+
+          <div class="settings-grid">
+
+            <label for="scheduleTime">SET SCHEDULE</label>
+            <input
+              type="time"
+              id="scheduleTime">
+
+            <label for="photoSaveDir">PHOTO SAVE DIR</label>
+            <input
+              type="text"
+              id="photoSaveDir"
+              placeholder="/path/to/snapshots">
+
+            <label for="cleanupTimer">DELETE OLD PICS AFTER</label>
+            <input
+              type="number"
+              id="cleanupTimer"
+              min="1"
+              placeholder="days">
+
+          </div>
+
+          <div class="modal-actions">
+            <button class="mBtn cancel" onclick="closeSettingsModal()">
+              <i class="ti ti-x" style="font-size:11px;margin-right:4px"></i>
+              CANCEL
+            </button>
+
+            <button class="mBtn approve" onclick="saveGeneralSettings()">
+              <i class="ti ti-check" style="font-size:11px;margin-right:4px"></i>
+              SAVE
+            </button>
+          </div>
+
+        </div>
+      </div>
+      <div class="bottombar">
+        <button class="bbtn connect" onclick="connectCam()"><i class="ti ti-connect"></i><span class="lbl">start stream</span></button>
+        <button class="bbtn start" onclick="startDetection()"><i class="ti ti-player-play"></i><span class="lbl">start detection</span></button>
+        <button class="bbtn stop" onclick="stopDetection()"><i class="ti ti-player-pause"></i><span class="lbl">stop detection</span></button>
+        <button class="bbtn reset" onclick="resetCam()"><i class="ti ti-refresh"></i><span class="lbl">stop all processes</span></button>
+
+        <button class="bbtn empty"></button>
+        <button class="bbtn empty"></button>
+        <div class="status-bar"><span class="status-dot" id="status-dot"></span><span id="status-txt">LIVE</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let images = [];
+let currentImage = 0;
+
+let touchStartX = 0;
+let touchEndX = 0;
+
+async function doLogin(){
+
+  const u = document.getElementById('authLogin').value.trim();
+  const p = document.getElementById('authPass').value;
+
+  try {
+    const response = await fetch('/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        username: u,
+        password: p
+      })
+    });
+
+    const data = await response.json();
+    if(data.success){
+
+      document.getElementById('loginScreen')
+        .classList.add('hidden');
+
+    } else {
+
+      showError(data.message || 'INVALID CREDENTIALS');
+
+    }
+
+  } catch(err){
+
+    showError('SERVER ERROR');
+
+  }
+}
+
+function showError(msg){
+
+  const err = document.getElementById('loginError');
+
+  err.textContent = msg;
+
+  setTimeout(()=>{
+    err.textContent='';
+  },2500);
+}
+
+function pad(n){return String(n).padStart(2,'0')}
+function tick(){const n=new Date();document.getElementById('clock').textContent=pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds())}
+tick();setInterval(tick,1000);
+
+function selectSide(el,name){document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('active'));el.classList.add('active')}
+function startCam(){document.getElementById('status-txt').textContent='WAITING FOR START';document.getElementById('status-dot'); document.querySelector('.rec-dot span').style.background='#ff3333'}
+function stopCam(){document.getElementById('status-txt').textContent='PAUSED';document.querySelector('.rec-dot span').style.background='#555'}
+
+async function openModal(){
+  const res = await fetch('/api/cameras');
+  const data = await res.json();
+
+    const cameras = data.cameras || [];
+
+    document.getElementById('camCount').value = cameras.length > 0 ? cameras.length : 1;
+
+    buildRtsp();
+
+    const inputs = document.querySelectorAll('#rtspList input');
+
+    cameras.forEach((cam, i) => {
+        if(inputs[i]){
+            inputs[i].value = cam.source ?? '';
+        }
+    });
+
+    document
+        .getElementById('overlay')
+        .classList.add('open');
+  
+}
+
+function closeModal(){
+  document.getElementById('overlay').classList.remove('open');
+  updateSystemInfo();
+}
+
+function overlayClick(e){if(e.target===document.getElementById('overlay'))closeModal()}
+
+async function closeBotModal(){
+  document.getElementById('botOverlay').classList.remove('open')
+  await updateSystemInfo();
+}
+
+function botOverlayClick(e){if(e.target===document.getElementById('botOverlay'))closeBotModal()}
+
+async function openFilesModal(){
+  const overlay = document.getElementById('snapshotsOverlay');
+  const content = document.getElementById('snapshotsContent');
+  overlay.classList.add('open');
+  content.innerHTML = `<div class="snapshot-empty">LOADING SAVED PICTURES...</div>`;
+  try {
+    const res = await fetch('/api/snapshots');
+    const data = await res.json();
+    content.innerHTML = '';
+    
+    if(!data.images || data.images.length === 0){
+      images = [];
+      content.innerHTML = `<div class="snapshot-empty">NO SAVED PICTURES</div>`;
+      return;
+    }
+    
+    images = data.images || [];
+
+    images.forEach((img,index)=>{
+
+        const image =
+            document.createElement("img");
+
+        image.src = img.url;
+
+        image.className = "snapshot-img";
+
+        image.onclick = ()=>{
+            openViewer(index);
+        };
+
+        content.appendChild(image);
+
+
+    });
+
+  } catch(err){
+    content.innerHTML = `<div class="snapshot-empty">FAILED TO LOAD PICTURES</div>`;
+  }
+}
+
+function closeSnapshotsModal(){
+  document.getElementById('snapshotsOverlay').classList.remove('open');
+}
+
+function snapshotsOverlayClick(e){
+  if(e.target === document.getElementById('snapshotsOverlay')){
+    closeSnapshotsModal();
+  }
+}
+
+function buildRtsp(){
+  const n=Math.max(1,Math.min(16,parseInt(document.getElementById('camCount').value)||1));
+  const list=document.getElementById('rtspList');
+  const existing=list.querySelectorAll('input');
+  const vals=Array.from(existing).map(i=>i.value);
+  list.innerHTML='';
+
+  for(let i=0;i<n;i++){
+    const row=document.createElement('div');
+    row.className='rtsp-row';
+    row.innerHTML=`<span>CAM ${i+1}</span><input type="text" placeholder="rtsp://user:pass@ip:port/stream" value="${vals[i]||''}">`;
+    list.appendChild(row);
+  }
+}
+
+async function approve(){
+  
+
+  const inputs = document.querySelectorAll('#rtspList input');
+  const cameras = Array.from(inputs).map((inp, i) => {
+   
+    const value = inp.value.trim();
+
+    const isUsb = /^\d+$/.test(value);
+
+    return {
+      id: i,
+      name: `CAM ${i+1}`,
+      source: isUsb
+        ? parseInt(value, 10)
+        : value
+    };
+  });
+
+  await fetch('/api/cameras/save', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ cameras })
+  });
+
+  const res = await fetch('/api/cameras');
+  const data = await res.json();
+
+  buildGrid(data.cameras);
+  updateCameraButton(data.cameras);
+  console.log("SENDING TO BACKEND:", cameras);
+  closeModal();
+  await updateSystemInfo();
+}
+
+async function openSettingsAuthModal(){
+  const res = await fetch('/auth');
+  const data = await res.json();
+  document.getElementById('newLogin').value = data.username ?? '';
+  document.getElementById('currentPassword').value = '';
+  document.getElementById('newPassword').value = '';
+  document.getElementById('confirmPassword').value = '';
+  document
+    .getElementById('authSettingsOverlay')
+    .classList.add('open');
+  
+}
+
+function closeSettingsAuthModal(){
+  document
+    .getElementById('authSettingsOverlay')
+    .classList.remove('open');
+}
+
+function AuthSettingsOverlayClick(e){
+
+  if(e.target === document.getElementById('authSettingsOverlay')){
+    
+    closeSettingsAuthModal();
+  }
+}
+
+function settingsOverlayClick(e){
+
+  if(e.target === document.getElementById('settingsOverlay')){
+    
+    closeSettingsModal();
+  }
+}
+
+async function saveSettings(){
+
+  const currentPassword =
+    document.getElementById('currentPassword').value;
+
+  const newLogin =
+    document.getElementById('newLogin').value.trim();
+
+  const newPassword =
+    document.getElementById('newPassword').value;
+
+  const confirmPassword =
+    document.getElementById('confirmPassword').value;
+
+  if(newPassword !== confirmPassword){
+
+    alert('Passwords do not match');
+
+    return;
+  }
+
+  try {
+
+    const response = await fetch('/change-credentials', {
+
+      method:'POST',
+
+      headers:{
+        'Content-Type':'application/json'
+      },
+
+      credentials:'include',
+
+      body:JSON.stringify({
+        currentPassword,
+        newLogin,
+        newPassword
+      })
+    });
+
+    const data = await response.json();
+
+    if(data.success){
+
+      alert('Credentials updated');
+
+      closeSettingsAuthModal();
+     
+    } else {
+
+      alert(data.message || 'Update failed');
+
+    }
+
+  } catch(err){
+
+    alert('Server error');
+
+  }
+}
+
+function buildGrid(cameras){
+  const grid = document.getElementById('cameraGrid');
+  if (!grid) {
+    console.error("Missing #cameraGrid element");
+    return;
+  }
+  grid.innerHTML = '';
+  grid.classList.toggle('single-camera', cameras.length === 1);
+  grid.classList.toggle('multi-camera', cameras.length > 1);
+  cameras.forEach(cam => {
+    const box = document.createElement('div');
+    box.className = 'cam-box';
+    box.innerHTML = `
+      <div class="cam-label">${cam.name}</div>
+      <img src="/stream/${cam.id}" alt="${cam.name}">
+    `;
+    grid.appendChild(box);
+  });
+  
+}
+
+async function loadCameras(){
+
+  const res = await fetch('/api/cameras');
+  const data = await res.json();
+
+  buildGrid(data.cameras);
+}
+
+function updateCameraButton(cameras){
+  
+  const btn = document.getElementById('cameraBtn');
+
+  const configured = cameras.some(cam =>
+    cam.source !== null &&
+    cam.source !== undefined &&
+    String(cam.source).trim() !== ''
+  );
+
+  btn.classList.toggle('warning', !configured);
+}
+
+async function loadBotInfo(){
+  const res = await fetch('/api/bot');
+
+}
+
+async function loadBotStatus(data){
+
+    const btn = document.getElementById('botBtn');
+    const configured =
+      data.configured === true ||
+      (String(data.token || '').trim() !== '' &&
+       String(data.chat_id || '').trim() !== '');
+
+    btn.classList.toggle('warning', !configured);
+}
+
+async function openBotModal(){
+
+  const res = await fetch('/api/bot');
+  const data = await res.json();
+
+  if(data.configured){
+
+    document.getElementById('botToken').value =
+      data.token || '';
+
+    document.getElementById('botApiUrl').value =
+      data.api_url || '';
+
+    document.getElementById('botUsername').value =
+      data.username || '';
+
+    document.getElementById('botId').value =
+      data.chat_id || '';
+  }
+   
+  document
+    .getElementById('botOverlay')
+    .classList.add('open');
+}
+
+async function approveBot(){
+
+  const creds = {
+
+    token:
+      document.getElementById('botToken').value.trim(),
+
+    api_url:
+      document.getElementById('botApiUrl').value.trim(),
+
+    username:
+      document.getElementById('botUsername').value.trim(),
+
+    chat_id:
+      document.getElementById('botId').value.trim()
+  };
+
+  const res = await fetch('/api/bot/save', {
+
+    method: 'POST',
+
+    headers: {
+      'Content-Type': 'application/json'
+    },
+
+    body: JSON.stringify(creds)
+  });
+
+  const data = await res.json();
+
+  if(data.success){
+    loadBotStatus(creds);
+    closeBotModal();
+  }
+}
+
+async function startDetection(){
+
+    const r = await fetch('/api/detection/start', {
+        method: 'POST'
+    });
+
+    const data = await r.json();
+    console.log(data);
+    document.getElementById('status-txt').textContent = 'RUNNING';
+    const dot = document.getElementById('status-dot');
+    dot.style.background = '#00ff00';
+    dot.classList.add('blink');
+    await updateSystemInfo();
+}
+
+async function stopDetection(){
+  await fetch('/api/detection/stop', {
+        method:'POST'
+    });
+    document.getElementById('status-txt').textContent = 'STOPPED';
+    const dot = document.getElementById('status-dot');
+    dot.style.background = '#ff3333';   // red
+    dot.classList.add('blink');
+    await updateSystemInfo();
+}
+
+async function resetCam(){
+    await fetch('/api/detection/reset', {
+        method:'POST'
+    });
+
+    document.getElementById('status-txt').textContent = 'RESET';
+    const dot = document.getElementById('status-dot');
+    dot.style.background = '#ffaa00';   // yellow
+    dot.classList.add('blink');
+    await updateSystemInfo();
+}
+
+function setStatus(text, color, blinking=false){
+
+    const dot = document.getElementById('status-dot');
+    const txt = document.getElementById('status-txt');
+
+    txt.textContent = text;
+    dot.style.background = color;
+
+    dot.classList.remove('blink');
+
+    if(blinking){
+        dot.classList.add('blink');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+
+  const grid = document.querySelector('.btns-area');
+  const res = await fetch('/api/cameras');
+  const data = await res.json();
+
+  buildGrid(data.cameras);
+  updateCameraButton(data.cameras);
+
+  const botRes = await fetch('/api/botBtnStatus');
+  const botData = await botRes.json();
+
+  loadBotStatus(botData);
+
+   const viewer = document.getElementById("viewerOverlay");
+
+    viewer.addEventListener("touchstart", (e) => {
+        touchStartX = e.changedTouches[0].screenX;
+    });
+
+    viewer.addEventListener("touchend", (e) => {
+
+        touchEndX = e.changedTouches[0].screenX;
+
+        if (touchEndX - touchStartX > 50)
+            prevImage(e);
+
+        if (touchStartX - touchEndX > 50)
+            nextImage(e);
+    });  
+  await updateSystemInfo();
+});
+
+async function connectCam(){
+
+   const res = await fetch('/api/detection/connect', {
+    method: 'POST'
+});
+
+
+}
+
+async function openSettingsModal(){
+  const res = await fetch('/api/getSettings');
+  const data = await res.json();
+
+    document.getElementById('scheduleTime').value =
+        data.schedule_time ?? '';
+
+    document.getElementById('photoSaveDir').value =
+        data.photo_save_dir ?? '';
+
+    document.getElementById('cleanupTimer').value =
+        data.cleanup_days ?? '';
+
+    document
+        .getElementById('settingsOverlay')
+        .classList.add('open');
+        console.log("Opening settings modal");
+}
+
+async function closeSettingsModal(){
+  document
+    .getElementById('settingsOverlay')
+    .classList.remove('open');
+    
+    await updateSystemInfo();
+}
+
+async function saveGeneralSettings(){
+  const settings = {
+    schedule_time:
+      document.getElementById('scheduleTime').value,
+
+    photo_save_dir:
+      document.getElementById('photoSaveDir').value.trim(),
+
+    cleanup_days:
+      parseInt(document.getElementById('cleanupTimer').value, 10) || null
+  };
+
+  const res = await fetch('/api/saveGenSettings', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(settings)
+  });
+
+  const data = await res.json();
+
+  if(data.success){
+    closeSettingsModal();
+    
+  }else{
+    alert(data.message || 'Settings save failed');
+  }
+}
+
+async function updateSystemInfo(){
+
+    const res = await fetch("/api/getInfo");
+    const info = await res.json();
+    
+    console.log("System Info:", info);
+
+    document.getElementById("stSchedule").innerHTML =
+        `AUTO START: <b>${ info.schedule_time && info.schedule_time.trim() !== ""
+            ? "ON (" + info.schedule_time + ")"
+            : "OFF"}
+            </b>`;
+
+    document.getElementById("stDelete").innerHTML =
+        `AUTO DELETE: <b>${
+           info.cleanup_days
+            ? "ON (" + info.cleanup_days + " days)"
+            : "OFF"
+        }</b>`;
+
+    document.getElementById("stPhotoDir").innerHTML =
+        `PHOTO PATH: <b>${
+            info.photo_path_set
+            ? "SET"
+            : "NOT SET"
+        }</b>`;
+
+    document.getElementById("stCameras").innerHTML =
+        `CAMERAS: <b>${
+            info.camera_count > 0
+            ? "SET (" + info.camera_count + ")"
+            : "NOT SET"
+        }</b>`;
+
+    document.getElementById("stBot").innerHTML =
+        `BOT: <b>${
+            info.bot_set
+            ? "SET"
+            : "NOT SET"
+        }</b>`;
+
+    document.getElementById("stDetection").innerHTML =
+        `DETECTION: <b>${
+            info.detection
+                ? "RUNNING"
+                : "STOPPED"
+        }</b>`;
+
+    document.getElementById("stConnection").innerHTML =
+        `CONNECTION: <b>${
+            info.connection
+                ? "ON"
+                : "OFF"
+        }</b>`;
+}
+function openViewer(index){
+
+    if(!images.length || !images[index]){
+        return;
+    }
+
+    currentImage = index;
+
+    document
+        .getElementById("viewerImage")
+        .src = images[currentImage].url;
+
+    document
+        .getElementById("viewerOverlay")
+        .classList.add("open");
+}
+function closeViewer(){
+
+    document
+        .getElementById("viewerOverlay")
+        .classList.remove("open");
+}
+function viewerOverlayClick(e){
+
+    if(e.target.id=="viewerOverlay"){
+
+        closeViewer();
+
+    }
+}
+function nextImage(e){
+
+    e.stopPropagation();
+
+    if(!images.length){
+        return;
+    }
+
+    currentImage++;
+
+    if(currentImage>=images.length)
+        currentImage=0;
+
+    document
+        .getElementById("viewerImage")
+        .src=images[currentImage].url;
+}
+function prevImage(e){
+
+    e.stopPropagation();
+
+    if(!images.length){
+        return;
+    }
+
+    currentImage--;
+
+    if(currentImage<0)
+        currentImage=images.length-1;
+
+    document
+        .getElementById("viewerImage")
+        .src=images[currentImage].url;
+}
+document.addEventListener("keydown",(e)=>{
+
+    const viewer =
+        document.getElementById("viewerOverlay");
+
+    if(!viewer.classList.contains("open"))
+        return;
+
+    if(e.key=="ArrowRight")
+        nextImage(e);
+
+    if(e.key=="ArrowLeft")
+        prevImage(e);
+
+    if(e.key=="Escape")
+        closeViewer();
+
+});
+
+
+</script>
+</body>
+</html>
