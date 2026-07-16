@@ -1,0 +1,8 @@
+/pic/
+/__pycache__/
+/Ip_cam_survilance/
+bottoken.txt
+users.db
+Bot_credentials.py
+/system_settings/
+/yolov5/
