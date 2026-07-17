@@ -62,6 +62,8 @@ class Camera:
         while self._is_running:
             # The dashboard controls this event; cameras wait here until streaming is enabled.
             self.start_stream.wait()
+            if not self._is_running:
+                break
             success, image = self.cap.read()
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
 
@@ -144,8 +146,13 @@ class Camera:
 
     def stop(self):
         self._is_running = False
-        if self.thread and self.thread.is_alive():
-            self.thread.join()
+        self.start_stream.set()
         if self.cap:
             self.cap.release()
-        cv2.destroyAllWindows()
+        if self.thread and self.thread.is_alive():
+            self.thread.join(timeout=2)
+        try:
+            cv2.destroyAllWindows()
+        except cv2.error as exc:
+            if "cvDestroyAllWindows" not in str(exc):
+                raise

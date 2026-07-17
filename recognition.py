@@ -98,4 +98,4 @@ class ProcessFrame:
         self._isRunning = False
 
         if self.thread and self.thread.is_alive():
-            self.thread.join()
+            self.thread.join(timeout=2)

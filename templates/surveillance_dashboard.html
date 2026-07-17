@@ -34,7 +34,6 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 .sbtn span.lbl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sbtn:hover{border-color:#7fff7f;color:#7fff7f;background:#0d1a0d}
 .sbtn.active{border-color:#7fff7f;color:#7fff7f;background:#0d1a0d}
-
 .sbtn.warning{
     border-color:#ffff66;
     color:#ffff66;
@@ -45,7 +44,7 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
     color:#ffffaa;
     background:#1a1a0d;
 }
-
+.sbtn .badge{position:absolute;right:6px;top:50%;transform:translateY(-50%);width:6px;height:6px;border-radius:50%;background:hsl(60, 100%, 63%)}
 .status-dot{
     display:inline-block;
     width:8px;
@@ -59,19 +58,19 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 }
 
 .system-status{
+    position:absolute;
+    top:8px;
+    left:8px;
+    right:8px;
+    z-index:4;
     display:flex;
     flex-wrap:wrap;
     gap:18px;
     align-items:center;
-
-    margin-bottom:12px;
     padding:8px 12px;
-
     border:1px solid #1a3a1a;
     border-radius:6px;
-
-    background:#0b120b;
-
+    background:rgba(11,18,11,.92);
     color:#7fff7f;
     font-size:13px;
     letter-spacing:.08em;
@@ -93,44 +92,66 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 .main{flex:1;display:flex;flex-direction:column;position:relative;background:#080d08;min-width:0}
 .field{flex:1;position:relative;overflow:hidden}
 .camera-grid{
-
   position:absolute;
   inset:0;
   z-index:1;
+  min-height:0;
   display:grid;
-  grid-template-columns:1fr 1fr;
-  gap:8px;
-  padding: 12px;
-  overflow-y:auto;
-  overflow-x:hidden;
+  gap:12px;
+  padding:58px 8px 8px;
+  overflow:auto;
+}
+
+.camera-grid.single-camera{
+  grid-template-columns:1fr;
+  place-items:center;
+}
+
+.camera-grid.single-camera .cam-box{
+  width:min(100%, 1200px);
+  height:min(100%, 75vh);
+  aspect-ratio:16/9;
+}
+
+.camera-grid.multi-camera{
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  grid-auto-rows:minmax(0, 1fr);
+  padding-top:50px;
+}
+
+.camera-grid.multi-camera .cam-box{
+  min-height:0;
+  aspect-ratio:auto;
 }
 
 .cam-box{
-
   position:relative;
-
   background:#000;
-
   border:1px solid #1a3a1a;
-
   overflow:hidden;
-
   display:flex;
-
   align-items:center;
-
   justify-content:center;
-
-  min-height:220px;
-
-  aspect-ratio:16/9;
+  max-width:100%;
+  max-height:100%;
+  width:100%;
+  height:100%;
+  min-width:0;
+  min-height:0;
+  aspect-ratio:auto;
 }
+
 .cam-box video,
 .cam-box img{
   width:100%;
   height:100%;
-  object-fit:cover;
+  max-width:100%;
+  max-height:100%;
+  display:block;
+  object-fit:contain;
+  background:#000;
 }
+
 .cam-label{
   position:absolute;
 
@@ -152,7 +173,9 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 .scanline{position:absolute;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,255,0,0.015) 3px,rgba(0,255,0,0.015) 4px);pointer-events:none;z-index:0}
 .grid-overlay{position:absolute;inset:0;background-image:linear-gradient(rgba(0,255,0,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,0,.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0}
 .rec-dot{position:absolute;top:10px;left:12px;display:flex;align-items:center;gap:6px;z-index:1;font-size:var(--fs-xs);color:#4a8a4a;letter-spacing:.15em}
+/* .rec-dot span{width:7px;height:7px;border-radius:50%;background:#ff3333;animation:blink 1.2s infinite} */
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+/* .btns-area{position:absolute;inset:0;z-index:2;display:flex;flex-wrap:wrap;align-content:flex-start;gap:var(--gap);padding:32px var(--pad) var(--pad)} */
 .btns-area {
   display: grid;
   gap: var(--gap);
@@ -171,6 +194,7 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 .status-bar{display:flex;align-items:center;gap:16px;margin-left:auto;font-size:var(--fs-xs);color:#2a5a2a;letter-spacing:.1em;flex-shrink:0}
 .status-dot{display:inline-block;width:5px;height:5px;border-radius:50%;background:#7fff7f;margin-right:4px}
 
+/* LOGIN SCREEN */
 .login-screen{position:fixed;inset:0;background:#050a05;z-index:999;display:flex;align-items:center;justify-content:center}
 .login-screen.hidden{display:none}
 .login-box{background:#060d06;border:1px solid #2a6a2a;border-radius:6px;padding:clamp(20px,4vw,36px);width:clamp(240px,90%,360px);display:flex;flex-direction:column;gap:16px}
@@ -183,7 +207,8 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 .login-btn{font-family:inherit;font-size:var(--fs-sm);letter-spacing:.2em;padding:var(--btn-pad-v);border-radius:var(--radius);cursor:pointer;transition:all .15s;border:1px solid #2a6a2a;background:transparent;color:#7fff7f;width:100%}
 .login-btn:hover{background:#0d2a0d;border-color:#7fff7f}
 
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;display:none;align-items:center;justify-content:center}
+/* MODAL */
+.overlay{position:absolute;inset:0;background:rgba(0,0,0,.7);z-index:100;display:none;align-items:center;justify-content:center}
 .overlay.open{display:flex}
 .modal{background:#060d06;border:1px solid #2a6a2a;border-radius:6px;padding:clamp(12px,2.5vw,22px);width:clamp(240px,70%,420px);max-height:80vh;display:flex;flex-direction:column;gap:12px;overflow:hidden}
 .modal-title{font-size:var(--fs-sm);letter-spacing:.25em;color:#7fff7f;border-bottom:1px solid #1a3a1a;padding-bottom:8px;display:flex;align-items:center;gap:8px}
@@ -194,14 +219,7 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 .field-row input:focus{border-color:#7fff7f}
 .field-row input::placeholder{color:#2a5a2a}
 .rtsp-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:clamp(80px,20vh,160px);padding-right:2px}
-.rtsp-row{
-    display:flex;
-    flex-direction:column;
-    gap:6px;
-    padding:6px;
-    border:1px solid #1a3a1a;
-    border-radius:4px;
-}
+.rtsp-row{display:flex;align-items:center;gap:6px}
 .rtsp-row span{font-size:var(--fs-xs);color:#4a8a4a;min-width:clamp(40px,8vw,56px);letter-spacing:.08em}
 .rtsp-row input{flex:1;background:#0a140a;border:1px solid #1a4a1a;color:#7fff7f;font-family:inherit;font-size:var(--fs-xs);padding:6px 8px;border-radius:var(--radius);outline:none;letter-spacing:.05em}
 .rtsp-row input:focus{border-color:#7fff7f}
@@ -213,13 +231,87 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 .mBtn.cancel{background:transparent;border:1px solid #3a1a1a;color:#aa4444}
 .mBtn.cancel:hover{background:#1a0808;border-color:#aa2222;color:#ff6666}
 
+/* @media(max-width:480px){
+  .sbtn span.lbl{display:none}
+  .sidebar{width:clamp(36px,11vw,48px)}
+  .sbtn{justify-content:center;padding:var(--btn-pad-v) 4px}
+  .bbtn span.lbl{display:none}
+  .modal{width:90%}
+} */
+ /*------------------------*/
+ /* .camera-grid{
+
+  position:absolute;
+  inset:0;
+
+  z-index:1;
+
+  display:grid;
+
+  grid-template-columns:1fr 1fr;
+
+  gap:8px;
+
+  padding:40px 8px 8px 8px;
+
+  overflow-y:auto;
+  overflow-x:hidden;
+}
+
+.cam-box{
+
+  position:relative;
+
+  background:#000;
+
+  border:1px solid #1a3a1a;
+
+  overflow:hidden;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  min-height:220px;
+
+  aspect-ratio:16/9;
+}
+
+.cam-box video,
+.cam-box img{
+
+  width:100%;
+  height:100%;
+
+  object-fit:cover;
+}
+
+.cam-label{
+
+  position:absolute;
+
+  top:6px;
+  left:6px;
+
+  z-index:2;
+
+  font-size:11px;
+
+  color:#7fff7f;
+
+  background:rgba(0,0,0,.5);
+
+  padding:2px 6px;
+
+  border:1px solid #1a3a1a;
+} */
+
+@media(max-width:768px), (orientation: portrait){
   html,
   body{
-
     height:auto;
-
     overflow-y:auto;
-
     overflow-x:hidden;
   }
 
@@ -227,96 +319,73 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
     position:relative;
   }
 
-.wrap{
-
+  .wrap{
     height:auto;
-
     min-height:100vh;
-
     overflow:visible;
   }
 
-.middle{
-    display:flex;
-    flex-direction:row;
-    overflow:hidden;
-}
-
-.sidebar{
-    width:var(--sidebar-w);
+  .middle{
     flex-direction:column;
-    overflow-y:auto;
-    overflow-x:hidden;
-    border-right:1px solid #1a3a1a;
-    border-bottom:none;
-}
-
-.main{
-
     overflow:visible;
   }
 
-.field{
+  .sidebar{
+    width:100%;
+    flex-direction:row;
+    overflow-x:auto;
+    overflow-y:hidden;
+    border-right:none;
+    border-bottom:1px solid #1a3a1a;
+  }
 
+  .main{
     overflow:visible;
+  }
 
+  .field{
+    overflow:visible;
     height:auto;
-
     min-height:auto;
   }
 
-.camera-grid{
-    min-height: 0;
+  .camera-grid{
     position:absolute;
     inset:0;
     z-index:1;
+    min-height:0;
     padding:8px;
     display:grid;
     gap:12px;
     overflow:auto;
   }
 
-.camera-grid.single-camera{
-  grid-template-columns:1fr;
-  place-items:center;
-}
-
-.camera-grid.single-camera .cam-box{
-  width:min(100%, 1200px);
-  height:min(100%, 75vh);
-  aspect-ratio:16/9;
-}
-
-.camera-grid.multi-camera{
-  grid-template-columns:repeat(2, minmax(0, 1fr));
-  grid-auto-rows:minmax(0, 1fr);
-  padding-top: 50px;
-}
-
-.camera-grid.multi-camera .cam-box{
-  min-height:0;
-  aspect-ratio:auto;
-}
-
-.cam-box{
-    min-width:0;
+  .cam-box{
+    position:relative;
+    background:#000;
+    border:1px solid #1a3a1a;
+    overflow:hidden;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     min-height:0;
     max-width:100%;
     max-height:100%;
     width:100%;
     height:100%;
-    aspect-ratio:auto;
+    min-width:0;
   }
-.cam-box img,
-.cam-box video{
+  .cam-box img,
+  .cam-box video{
   width:100%;
   height:100%;
   max-width:100%;
   max-height:100%;
-  object-fit:contain;
   display:block;
-}
-.cam-label{
+  object-fit:contain;
+  background:#000;
+  }
+  .cam-label{
   position:absolute;
   top:6px;
   right:6px;
@@ -327,16 +396,22 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
   padding:2px 6px;
   border:1px solid #1a3a1a;
 }
+
 .snapshots-modal{
-  width:clamp(280px,85%,900px);
+  width:min(92vw,1100px);
+  max-width:1100px;
+  height:min(82vh,760px);
 }
+
 .snapshots-content{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
-  gap:10px;
-  max-height:60vh;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:12px;
+  min-height:0;
+  max-height:calc(82vh - 120px);
   overflow-y:auto;
 }
+
 .snapshot-img{
   width:100%;
   aspect-ratio:16/9;
@@ -344,6 +419,7 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
   border:1px solid #1a3a1a;
   cursor:pointer;
 }
+
 .snapshot-empty{
   color:#7fff7f;
   font-size:12px;
@@ -359,6 +435,7 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
     align-items:center;
     justify-content:center;
 }
+
 .image-viewer-box img{
     max-width:100%;
     max-height:100%;
@@ -372,26 +449,18 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 }
 
 .viewer-btn{
-
     position:absolute;
-
     top:50%;
     transform:translateY(-50%);
-
-    width:46px;
-    height:46px;
-
-    border:none;
-
-    background:rgba(0,0,0,.5);
-
-    color:#7fff7f;
-
-    font-size:34px;
-
-    cursor:pointer;
-
+    width:64px;
+    height:64px;
     border-radius:50%;
+    border:1px solid #1a3a1a;
+    background:rgba(0,0,0,.68);
+    color:#7fff7f;
+    font-size:40px;
+    cursor:pointer;
+    z-index:2;
 }
 
 .viewer-prev{
@@ -406,7 +475,14 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
     background:#0d1a0d;
 }
 
-
+.viewer-stage{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    max-width:90vw;
+    max-height:90vh;
+}
 .bottombar{
 
     position:sticky;
@@ -420,57 +496,7 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 .btns-area {
     grid-template-columns: 1fr;
   }
-.settings-modal{
-  width:clamp(280px,75%,560px);
-}
 
-.settings-grid{
-  display:grid;
-  grid-template-columns:180px 1fr;
-  gap:10px 12px;
-  align-items:center;
-}
-
-.settings-grid label{
-  font-size:var(--fs-xs);
-  color:#4a8a4a;
-  letter-spacing:.12em;
-}
-
-.settings-grid input{
-  background:#0a140a;
-  border:1px solid #1a4a1a;
-  color:#7fff7f;
-  font-family:inherit;
-  font-size:var(--fs-xs);
-  padding:7px 10px;
-  border-radius:var(--radius);
-  outline:none;
-  width:100%;
-}
-
-.settings-grid input:focus{
-  border-color:#7fff7f;
-}
-@media(max-width:768px), (orientation: portrait){
-  .middle{
-    flex-direction:column;
-    overflow:visible;
-  }
-
-  .sidebar{
-    width:100%;
-    flex-direction:row;
-    overflow-x:auto;
-    overflow-y:hidden;
-    border-right:none;
-    border-bottom:1px solid #1a3a1a;
-  }
-  
-  .sidebar-label{
-    display:none;
-  }
-  
   .camera-grid{
     position:relative;
     inset:auto;
@@ -486,19 +512,74 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
     min-height:220px;
     aspect-ratio:16/9;
   }
-
-
-@media(max-width:600px){
-  .settings-grid{
-    grid-template-columns:1fr;
-  }
 }
 
+#snapshotsOverlay,
+#viewerOverlay{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+}
+
+#snapshotsOverlay .snapshots-modal{
+  width:min(92vw,1100px);
+  max-width:none;
+  height:min(82vh,760px);
+  max-height:82vh;
+}
+
+#snapshotsContent{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:12px;
+  min-height:0;
+  max-height:calc(82vh - 120px);
+  overflow-y:auto;
+}
+
+#snapshotsContent .snapshot-img{
+  width:100%;
+  aspect-ratio:16/9;
+  object-fit:cover;
+}
+
+#viewerOverlay{
+  background:rgba(0,0,0,.86);
+}
+
+#viewerImage.viewer-image{
+  max-width:90vw;
+  max-height:90vh;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+  flex:0 1 auto;
+}
+
+#viewerOverlay .viewer-btn{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  flex:0 0 auto;
+  z-index:1001;
+}
+
+#viewerOverlay .viewer-prev{
+  left:12px;
+  right:auto;
+}
+
+#viewerOverlay .viewer-next{
+  right:12px;
+  left:auto;
 }
 
 </style>
+
+
 </head>
 <body>
+<!-- LOGIN SCREEN -->
 <div class="login-screen" id="loginScreen">
   <div class="login-box">
     <div class="login-logo">
@@ -530,8 +611,8 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
   <div class="middle">
     <div class="sidebar">
       <div class="sidebar-label">SETTINGS</div>
-      <button class="sbtn active" id='cameraBtn' onclick="selectSide(this,'camera');openModal()"><i class="ti ti-camera"></i><span class="lbl">camera</span></button>
-      <button class="sbtn" id='botBtn' onclick="selectSide(this,'bot');openBotModal()"><i class="ti ti-robot"></i><span class="lbl">bot</span></button>
+      <button class="sbtn active" id="cameraBtn" onclick="selectSide(this,'camera');openModal()"><i class="ti ti-camera"></i><span class="lbl">camera</span></button>
+      <button class="sbtn" id="botBtn" onclick="selectSide(this,'bot');openBotModal()"><i class="ti ti-robot"></i><span class="lbl">bot</span></button>
       <button class="sbtn" onclick="selectSide(this,'files');openFilesModal()"><i class="ti ti-folder"></i><span class="lbl">files</span></button>
       <button class="sbtn" onclick="selectSide(this,'settings');openSettingsAuthModal()"><i class="ti ti-settings"></i><span class="lbl">authorization</span></button>
       <button class="sbtn" onclick="selectSide(this,'settings');openSettingsModal()"><i class="ti ti-settings"></i><span class="lbl">settings</span></button>
@@ -542,67 +623,43 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
       <div class="field">
         <div class="scanline"></div>
         <div class="grid-overlay"></div>
+
         <div id="systemStatus" class="system-status">
-
-            <span id="stSchedule">
-                AUTO START:
-                <b>OFF</b>
-            </span>
-
-            <span id="stDelete">
-                AUTO DELETE:
-                <b>OFF</b>
-            </span>
-
-            <span id="stPhotoDir">
-                PHOTO PATH:
-                <b>OFF</b>
-            </span>
-
-            <span id="stCameras">
-                CAMERAS:
-                <b>0</b>
-            </span>
-
-            <span id="stBot">
-                BOT:
-                <b>NOT SET</b>
-            </span>
-
-            <span id="stDetection">
-                DETECTION:
-                <b>STOPPED</b>
-            </span>
-
+          <span id="stSchedule">AUTO START: <b>OFF</b></span>
+          <span id="stDelete">AUTO DELETE: <b>OFF</b></span>
+          <span id="stPhotoDir">PHOTO PATH: <b>NOT SET</b></span>
+          <span id="stCameras">CAMERAS: <b>NOT SET</b></span>
+          <span id="stBot">BOT: <b>NOT SET</b></span>
+          <span id="stDetection">DETECTION: <b>STOPPED</b></span>
+          <span id="stConnection">CONNECTION: <b>OFF</b></span>
         </div>
+
         <div id="cameraGrid" class="camera-grid"></div>
         <div class="btns-area"></div>
 
+        <!-- CAMERA MODAL -->
         <div class="overlay" id="overlay" onclick="overlayClick(event)">
-          <div class="modal" onclick="event.stopPropagation()">
+          <div class="modal">
             <div class="modal-title"><i class="ti ti-camera"></i>CAMERA SETTINGS</div>
-            
             <div class="field-row">
               <label>AMOUNT OF CAMERAS</label>
               <input type="number" id="camCount" min="1" max="16" value="1" placeholder="e.g. 4" oninput="buildRtsp()">
             </div>
-            
             <div class="field-row">
               <label>RTSP LINKS</label>
               <div class="rtsp-list" id="rtspList">
-                 <div class="rtsp-row"><span>CAM 1</span><input type="text" placeholder="rtsp://user:pass@ip:port/stream"></div>
-                <!-- Dynamic rows generated by buildRtsp() -->
+                <div class="rtsp-row"><span>CAM 1</span><input type="text" placeholder="rtsp://user:pass@ip:port/stream"></div>
               </div>
             </div>
-            
             <div class="modal-actions">
               <button class="mBtn cancel" onclick="closeModal()"><i class="ti ti-x" style="font-size:11px;margin-right:4px"></i>CANCEL</button>
               <button class="mBtn approve" onclick="approve()"><i class="ti ti-check" style="font-size:11px;margin-right:4px"></i>APPROVE</button>
             </div>
           </div>
         </div>
+        <!-- SNAPSHOTS MODAL -->
         <div class="overlay" id="snapshotsOverlay" onclick="snapshotsOverlayClick(event)">
-          <div class="modal snapshots-modal" onclick="event.stopPropagation()">
+          <div class="modal snapshots-modal">
             <div class="modal-title">
               <i class="ti ti-photo"></i>
               SAVED PICTURES
@@ -620,25 +677,17 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
             </div>
           </div>
         </div>
+        <!-- IMAGE VIEWER -->
         <div class="overlay" id="viewerOverlay" onclick="viewerOverlayClick(event)">
-
-          <button
-              class="viewer-btn viewer-prev"
-              onclick="prevImage(event)">
-              &#10094;
-          </button>
-
-          <img id="viewerImage" class="viewer-image" onclick="event.stopPropagation()">
-
-          <button
-              class="viewer-btn viewer-next"
-              onclick="nextImage(event)">
-              &#10095;
-          </button>
-
+          <div class="viewer-stage" onclick="event.stopPropagation()">
+            <button class="viewer-btn viewer-prev" onclick="prevImage(event)">&#10094;</button>
+            <img id="viewerImage" class="viewer-image">
+            <button class="viewer-btn viewer-next" onclick="nextImage(event)">&#10095;</button>
+          </div>
         </div>
+        <!-- BOT MODAL -->
         <div class="overlay" id="botOverlay" onclick="botOverlayClick(event)">
-          <div class="modal" onclick="event.stopPropagation()">
+          <div class="modal">
             <div class="modal-title"><i class="ti ti-robot"></i>BOT CREDENTIALS</div>
             <div class="field-row">
               <label>BOT TOKEN API</label>
@@ -729,7 +778,7 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 
         </div>
       </div>
-      
+
       <div class="overlay" id="settingsOverlay" onclick="settingsOverlayClick(event)">
         <div class="modal settings-modal" onclick="event.stopPropagation()">
 
@@ -738,26 +787,19 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
             GENERAL SETTINGS
           </div>
 
-          <div class="settings-grid">
+          <div class="field-row">
+            <label>SET SCHEDULE</label>
+            <input type="time" id="scheduleTime">
+          </div>
 
-            <label for="scheduleTime">SET SCHEDULE</label>
-            <input
-              type="time"
-              id="scheduleTime">
+          <div class="field-row">
+            <label>PHOTO SAVE DIR</label>
+            <input type="text" id="photoSaveDir" placeholder="/path/to/snapshots">
+          </div>
 
-            <label for="photoSaveDir">PHOTO SAVE DIR</label>
-            <input
-              type="text"
-              id="photoSaveDir"
-              placeholder="/path/to/snapshots">
-
-            <label for="cleanupTimer">DELETE OLD PICS AFTER</label>
-            <input
-              type="number"
-              id="cleanupTimer"
-              min="1"
-              placeholder="days">
-
+          <div class="field-row">
+            <label>DELETE OLD PICS AFTER</label>
+            <input type="number" id="cleanupTimer" min="1" placeholder="days">
           </div>
 
           <div class="modal-actions">
@@ -765,7 +807,6 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
               <i class="ti ti-x" style="font-size:11px;margin-right:4px"></i>
               CANCEL
             </button>
-
             <button class="mBtn approve" onclick="saveGeneralSettings()">
               <i class="ti ti-check" style="font-size:11px;margin-right:4px"></i>
               SAVE
@@ -774,14 +815,15 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 
         </div>
       </div>
+      </div>
+
       <div class="bottombar">
-        <button class="bbtn connect" onclick="connectCam()"><i class="ti ti-connect"></i><span class="lbl">start stream</span></button>
+        <button class="bbtn connect" onclick="connectCam()"><i class="ti ti-connect"></i><span class="lbl">start surveillance</span></button>
         <button class="bbtn start" onclick="startDetection()"><i class="ti ti-player-play"></i><span class="lbl">start detection</span></button>
         <button class="bbtn stop" onclick="stopDetection()"><i class="ti ti-player-pause"></i><span class="lbl">stop detection</span></button>
         <button class="bbtn reset" onclick="resetCam()"><i class="ti ti-refresh"></i><span class="lbl">stop all processes</span></button>
-
-        <button class="bbtn empty"></button>
-        <button class="bbtn empty"></button>
+        <button class="bbtn reset" onclick="restartApplication()"><i class="ti ti-rotate-clockwise-2"></i><span class="lbl">restart application</span></button>
+        <button class="bbtn stop" onclick="shutdownApplication()"><i class="ti ti-power"></i><span class="lbl">stop application</span></button>
         <div class="status-bar"><span class="status-dot" id="status-dot"></span><span id="status-txt">LIVE</span></div>
       </div>
     </div>
@@ -789,9 +831,9 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 </div>
 
 <script>
+// --- AUTH ---
 let images = [];
 let currentImage = 0;
-
 let touchStartX = 0;
 let touchEndX = 0;
 
@@ -843,6 +885,7 @@ function showError(msg){
   },2500);
 }
 
+// --- CLOCK ---
 function pad(n){return String(n).padStart(2,'0')}
 function tick(){const n=new Date();document.getElementById('clock').textContent=pad(n.getHours())+':'+pad(n.getMinutes())+':'+pad(n.getSeconds())}
 tick();setInterval(tick,1000);
@@ -850,46 +893,35 @@ tick();setInterval(tick,1000);
 function selectSide(el,name){document.querySelectorAll('.sbtn').forEach(b=>b.classList.remove('active'));el.classList.add('active')}
 function startCam(){document.getElementById('status-txt').textContent='WAITING FOR START';document.getElementById('status-dot'); document.querySelector('.rec-dot span').style.background='#ff3333'}
 function stopCam(){document.getElementById('status-txt').textContent='PAUSED';document.querySelector('.rec-dot span').style.background='#555'}
+// function resetCam(){document.getElementById('status-txt').textContent='LIVE';document.querySelector('.rec-dot span').style.background='#ff3333'}
 
 async function openModal(){
   const res = await fetch('/api/cameras');
   const data = await res.json();
-
-    const cameras = data.cameras || [];
-
-    document.getElementById('camCount').value = cameras.length > 0 ? cameras.length : 1;
-
-    buildRtsp();
-
-    const inputs = document.querySelectorAll('#rtspList input');
-
-    cameras.forEach((cam, i) => {
-        if(inputs[i]){
-            inputs[i].value = cam.source ?? '';
-        }
-    });
-
-    document
-        .getElementById('overlay')
-        .classList.add('open');
-  
+  const cameras = data.cameras || [];
+  document.getElementById('camCount').value = cameras.length > 0 ? cameras.length : 1;
+  buildRtsp();
+  const inputs = document.querySelectorAll('#rtspList input');
+  cameras.forEach((cam, i) => {
+    if(inputs[i]){
+      inputs[i].value = cam.source ?? '';
+    }
+  });
+  document.getElementById('overlay').classList.add('open');
 }
-
 function closeModal(){
   document.getElementById('overlay').classList.remove('open');
   updateSystemInfo();
 }
-
 function overlayClick(e){if(e.target===document.getElementById('overlay'))closeModal()}
 
 async function closeBotModal(){
-  document.getElementById('botOverlay').classList.remove('open')
+  document.getElementById('botOverlay').classList.remove('open');
   await updateSystemInfo();
 }
-
 function botOverlayClick(e){if(e.target===document.getElementById('botOverlay'))closeBotModal()}
 
-async function openFilesModal(){
+async function openFilesModal(){ 
   const overlay = document.getElementById('snapshotsOverlay');
   const content = document.getElementById('snapshotsContent');
   overlay.classList.add('open');
@@ -898,38 +930,25 @@ async function openFilesModal(){
     const res = await fetch('/api/snapshots');
     const data = await res.json();
     content.innerHTML = '';
-    
     if(!data.images || data.images.length === 0){
       images = [];
       content.innerHTML = `<div class="snapshot-empty">NO SAVED PICTURES</div>`;
       return;
     }
-    
     images = data.images || [];
-
-    images.forEach((img,index)=>{
-
-        const image =
-            document.createElement("img");
-
-        image.src = img.url;
-
-        image.className = "snapshot-img";
-
-        image.onclick = ()=>{
-            openViewer(index);
-        };
-
-        content.appendChild(image);
-
-
+    images.forEach((item, index) => {
+      const img = document.createElement('img');
+      img.className = 'snapshot-img';
+      img.src = item.url;
+      img.onclick = () => openViewer(index);
+      content.appendChild(img);
+      
     });
 
   } catch(err){
     content.innerHTML = `<div class="snapshot-empty">FAILED TO LOAD PICTURES</div>`;
-  }
+  } 
 }
-
 function closeSnapshotsModal(){
   document.getElementById('snapshotsOverlay').classList.remove('open');
 }
@@ -939,14 +958,13 @@ function snapshotsOverlayClick(e){
     closeSnapshotsModal();
   }
 }
-
 function buildRtsp(){
   const n=Math.max(1,Math.min(16,parseInt(document.getElementById('camCount').value)||1));
   const list=document.getElementById('rtspList');
   const existing=list.querySelectorAll('input');
   const vals=Array.from(existing).map(i=>i.value);
   list.innerHTML='';
-
+  
   for(let i=0;i<n;i++){
     const row=document.createElement('div');
     row.className='rtsp-row';
@@ -955,22 +973,80 @@ function buildRtsp(){
   }
 }
 
-async function approve(){
-  
+// function approve(){
 
+//   const n =
+//     parseInt(document.getElementById('camCount').value) || 1;
+
+//   const links =
+//     Array.from(
+//       document.querySelectorAll('#rtspList input')
+//     ).map(i => i.value.trim());
+
+//   const grid =
+//     document.getElementById('cameraGrid');
+
+//   grid.innerHTML = '';
+
+//   const rows = Math.ceil(n / 2);
+
+//   grid.style.gridTemplateRows =
+//     `repeat(${rows}, 1fr)`;
+
+//   for(let i = 0; i < n; i++){
+
+//     const box = document.createElement('div');
+
+//     box.className = 'cam-box';
+
+//     // TEMP TEST VIDEO
+//     // Replace later with real stream
+
+//     box.innerHTML = `
+//       <div class="cam-label">
+//         CAM ${i+1}
+//       </div>
+
+//       <video
+//         autoplay
+//         muted
+//         loop
+//         playsinline>
+
+//         <source
+//           src="sample.mp4"
+//           type="video/mp4">
+
+//       </video>
+//     `;
+
+//     grid.appendChild(box);
+//   }
+
+//   fetch('/api/cameras/save', {
+//   method: 'POST',
+//   headers: {'Content-Type':'application/json'},
+//   body: JSON.stringify({
+//     cameras: links.map((url, i) => ({
+//       id: i,
+//       name: `CAM ${i+1}`,
+//       rtsp_url: url
+//     }))
+//   })
+// });
+
+//   closeModal();
+// }
+
+async function approve(){
   const inputs = document.querySelectorAll('#rtspList input');
   const cameras = Array.from(inputs).map((inp, i) => {
-   
     const value = inp.value.trim();
-
     const isUsb = /^\d+$/.test(value);
-
     return {
       id: i,
       name: `CAM ${i+1}`,
-      source: isUsb
-        ? parseInt(value, 10)
-        : value
+      source: isUsb ? parseInt(value, 10) : value
     };
   });
 
@@ -990,6 +1066,28 @@ async function approve(){
   await updateSystemInfo();
 }
 
+// function approveBot(){
+//   const creds={
+//     token:document.getElementById('botToken').value.trim(),
+//     apiUrl:document.getElementById('botApiUrl').value.trim(),
+//     username:document.getElementById('botUsername').value.trim(),
+//     secret:document.getElementById('botSecret').value.trim()
+//   };
+//   console.log('Bot credentials saved:',creds);
+//   document.querySelector('.sbtn .badge').style.background='#7fff7f';
+  
+//   fetch('/api/bot/save', {
+//   method: 'POST',
+//   headers: {'Content-Type':'application/json'},
+//   body: JSON.stringify({
+//       API: ` `,
+//       chat_id: id
+    
+//   })
+// });
+//   closeBotModal();
+// }
+
 async function openSettingsAuthModal(){
   const res = await fetch('/auth');
   const data = await res.json();
@@ -997,30 +1095,21 @@ async function openSettingsAuthModal(){
   document.getElementById('currentPassword').value = '';
   document.getElementById('newPassword').value = '';
   document.getElementById('confirmPassword').value = '';
-  document
-    .getElementById('authSettingsOverlay')
-    .classList.add('open');
-  
+  document.getElementById('authSettingsOverlay').classList.add('open');
 }
 
 function closeSettingsAuthModal(){
-  document
-    .getElementById('authSettingsOverlay')
-    .classList.remove('open');
+  document.getElementById('authSettingsOverlay').classList.remove('open');
 }
 
 function AuthSettingsOverlayClick(e){
-
   if(e.target === document.getElementById('authSettingsOverlay')){
-    
     closeSettingsAuthModal();
   }
 }
 
 function settingsOverlayClick(e){
-
   if(e.target === document.getElementById('settingsOverlay')){
-    
     closeSettingsModal();
   }
 }
@@ -1072,7 +1161,7 @@ async function saveSettings(){
       alert('Credentials updated');
 
       closeSettingsAuthModal();
-     
+
     } else {
 
       alert(data.message || 'Update failed');
@@ -1104,7 +1193,16 @@ function buildGrid(cameras){
     `;
     grid.appendChild(box);
   });
-  
+}
+
+function updateCameraButton(cameras){
+  const btn = document.getElementById('cameraBtn');
+  const configured = cameras.some(cam =>
+    cam.source !== null &&
+    cam.source !== undefined &&
+    String(cam.source).trim() !== ''
+  );
+  btn.classList.toggle('warning', !configured);
 }
 
 async function loadCameras(){
@@ -1115,33 +1213,18 @@ async function loadCameras(){
   buildGrid(data.cameras);
 }
 
-function updateCameraButton(cameras){
-  
-  const btn = document.getElementById('cameraBtn');
-
-  const configured = cameras.some(cam =>
-    cam.source !== null &&
-    cam.source !== undefined &&
-    String(cam.source).trim() !== ''
-  );
-
-  btn.classList.toggle('warning', !configured);
-}
-
 async function loadBotInfo(){
   const res = await fetch('/api/bot');
 
 }
 
 async function loadBotStatus(data){
-
-    const btn = document.getElementById('botBtn');
-    const configured =
-      data.configured === true ||
-      (String(data.token || '').trim() !== '' &&
-       String(data.chat_id || '').trim() !== '');
-
-    btn.classList.toggle('warning', !configured);
+  const btn = document.getElementById('botBtn');
+  const configured =
+    data.configured === true ||
+    (String(data.token || '').trim() !== '' &&
+     String(data.chat_id || '').trim() !== '');
+  btn.classList.toggle('warning', !configured);
 }
 
 async function openBotModal(){
@@ -1163,7 +1246,7 @@ async function openBotModal(){
     document.getElementById('botId').value =
       data.chat_id || '';
   }
-   
+
   document
     .getElementById('botOverlay')
     .classList.add('open');
@@ -1224,10 +1307,7 @@ async function stopDetection(){
   await fetch('/api/detection/stop', {
         method:'POST'
     });
-    document.getElementById('status-txt').textContent = 'STOPPED';
-    const dot = document.getElementById('status-dot');
-    dot.style.background = '#ff3333';   // red
-    dot.classList.add('blink');
+    setStatus('DETECTION STOPPED', '#ff3333', true);
     await updateSystemInfo();
 }
 
@@ -1236,10 +1316,7 @@ async function resetCam(){
         method:'POST'
     });
 
-    document.getElementById('status-txt').textContent = 'RESET';
-    const dot = document.getElementById('status-dot');
-    dot.style.background = '#ffaa00';   // yellow
-    dot.classList.add('blink');
+    setStatus('ALL LOOPS STOPPED', '#ffaa00', true);
     await updateSystemInfo();
 }
 
@@ -1258,85 +1335,100 @@ function setStatus(text, color, blinking=false){
     }
 }
 
-document.addEventListener('DOMContentLoaded', async () => {
+async function restartApplication(){
+  const confirmed = window.confirm('Restart the whole surveillance application?');
+  if(!confirmed){
+    return;
+  }
+  try{
+    const res = await fetch('/api/app/restart', { method: 'POST' });
+    const data = await res.json();
+    if(!data.success){
+      alert(data.message || 'Restart request failed');
+      return;
+    }
+    setStatus('RESTARTING', '#ffaa00', true);
+    setTimeout(() => {
+      window.location.reload();
+    }, 4000);
+  }catch(err){
+    alert('Restart request failed');
+  }
+}
 
-  const grid = document.querySelector('.btns-area');
+async function shutdownApplication(){
+  const confirmed = window.confirm('Stop the whole surveillance application? You will need to start the Python app again manually.');
+  if(!confirmed){
+    return;
+  }
+  try{
+    const res = await fetch('/api/app/shutdown', { method: 'POST' });
+    const data = await res.json();
+    if(!data.success){
+      alert(data.message || 'Stop request failed');
+      return;
+    }
+    setStatus('STOPPING APP', '#ff3333', true);
+    setTimeout(() => {
+      window.location.reload();
+    }, 2500);
+  }catch(err){
+    alert('Stop request failed');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
   const res = await fetch('/api/cameras');
   const data = await res.json();
 
   buildGrid(data.cameras);
   updateCameraButton(data.cameras);
-
   const botRes = await fetch('/api/botBtnStatus');
   const botData = await botRes.json();
-
   loadBotStatus(botData);
-
-   const viewer = document.getElementById("viewerOverlay");
-
-    viewer.addEventListener("touchstart", (e) => {
-        touchStartX = e.changedTouches[0].screenX;
-    });
-
-    viewer.addEventListener("touchend", (e) => {
-
-        touchEndX = e.changedTouches[0].screenX;
-
-        if (touchEndX - touchStartX > 50)
-            prevImage(e);
-
-        if (touchStartX - touchEndX > 50)
-            nextImage(e);
-    });  
   await updateSystemInfo();
+  const viewer = document.getElementById('viewerOverlay');
+  viewer.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  });
+  viewer.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    if(touchEndX - touchStartX > 50){
+      prevImage(e);
+    }
+    if(touchStartX - touchEndX > 50){
+      nextImage(e);
+    }
+  });
 });
 
 async function connectCam(){
-
-   const res = await fetch('/api/detection/connect', {
+   await fetch('/api/detection/connect', {
     method: 'POST'
-});
-
-
+  });
+  setStatus('RUNNING', '#00ff00', true);
+  await updateSystemInfo();
 }
 
 async function openSettingsModal(){
   const res = await fetch('/api/getSettings');
   const data = await res.json();
-
-    document.getElementById('scheduleTime').value =
-        data.schedule_time ?? '';
-
-    document.getElementById('photoSaveDir').value =
-        data.photo_save_dir ?? '';
-
-    document.getElementById('cleanupTimer').value =
-        data.cleanup_days ?? '';
-
-    document
-        .getElementById('settingsOverlay')
-        .classList.add('open');
-        console.log("Opening settings modal");
+  document.getElementById('scheduleTime').value = data.schedule_time ?? '';
+  document.getElementById('photoSaveDir').value = data.photo_save_dir ?? '';
+  document.getElementById('cleanupTimer').value = data.cleanup_days ?? '';
+  document.getElementById('settingsOverlay').classList.add('open');
 }
 
 async function closeSettingsModal(){
-  document
-    .getElementById('settingsOverlay')
-    .classList.remove('open');
-    
-    await updateSystemInfo();
+  document.getElementById('settingsOverlay').classList.remove('open');
+  await updateSystemInfo();
 }
 
 async function saveGeneralSettings(){
   const settings = {
-    schedule_time:
-      document.getElementById('scheduleTime').value,
-
-    photo_save_dir:
-      document.getElementById('photoSaveDir').value.trim(),
-
-    cleanup_days:
-      parseInt(document.getElementById('cleanupTimer').value, 10) || null
+    schedule_time: document.getElementById('scheduleTime').value,
+    photo_save_dir: document.getElementById('photoSaveDir').value.trim(),
+    cleanup_days: parseInt(document.getElementById('cleanupTimer').value, 10) || null
   };
 
   const res = await fetch('/api/saveGenSettings', {
@@ -1346,153 +1438,97 @@ async function saveGeneralSettings(){
   });
 
   const data = await res.json();
-
   if(data.success){
     closeSettingsModal();
-    
   }else{
     alert(data.message || 'Settings save failed');
   }
 }
 
 async function updateSystemInfo(){
-
-    const res = await fetch("/api/getInfo");
-    const info = await res.json();
-    
-    console.log("System Info:", info);
-
-    document.getElementById("stSchedule").innerHTML =
-        `AUTO START: <b>${ info.schedule_time && info.schedule_time.trim() !== ""
-            ? "ON (" + info.schedule_time + ")"
-            : "OFF"}
-            </b>`;
-
-    document.getElementById("stDelete").innerHTML =
-        `AUTO DELETE: <b>${
-           info.cleanup_days
-            ? "ON (" + info.cleanup_days + " days)"
-            : "OFF"
-        }</b>`;
-
-    document.getElementById("stPhotoDir").innerHTML =
-        `PHOTO PATH: <b>${
-            info.photo_path_set
-            ? "SET"
-            : "NOT SET"
-        }</b>`;
-
-    document.getElementById("stCameras").innerHTML =
-        `CAMERAS: <b>${
-            info.camera_count > 0
-            ? "SET (" + info.camera_count + ")"
-            : "NOT SET"
-        }</b>`;
-
-    document.getElementById("stBot").innerHTML =
-        `BOT: <b>${
-            info.bot_set
-            ? "SET"
-            : "NOT SET"
-        }</b>`;
-
-    document.getElementById("stDetection").innerHTML =
-        `DETECTION: <b>${
-            info.detection
-                ? "RUNNING"
-                : "STOPPED"
-        }</b>`;
-
-    document.getElementById("stConnection").innerHTML =
-        `CONNECTION: <b>${
-            info.connection
-                ? "ON"
-                : "OFF"
-        }</b>`;
+  const res = await fetch('/api/getInfo');
+  const info = await res.json();
+  if(document.getElementById('stSchedule')){
+    document.getElementById('stSchedule').innerHTML = `AUTO START: <b>${info.schedule_time && info.schedule_time.trim() !== '' ? 'ON (' + info.schedule_time + ')' : 'OFF'}</b>`;
+  }
+  if(document.getElementById('stDelete')){
+    document.getElementById('stDelete').innerHTML = `AUTO DELETE: <b>${info.cleanup_days ? 'ON (' + info.cleanup_days + ' days)' : 'OFF'}</b>`;
+  }
+  if(document.getElementById('stPhotoDir')){
+    document.getElementById('stPhotoDir').innerHTML = `PHOTO PATH: <b>${info.photo_path_set ? 'SET' : 'NOT SET'}</b>`;
+  }
+  if(document.getElementById('stCameras')){
+    document.getElementById('stCameras').innerHTML = `CAMERAS: <b>${info.camera_count > 0 ? 'SET (' + info.camera_count + ')' : 'NOT SET'}</b>`;
+  }
+  if(document.getElementById('stBot')){
+    document.getElementById('stBot').innerHTML = `BOT: <b>${info.bot_set ? 'SET' : 'NOT SET'}</b>`;
+  }
+  if(document.getElementById('stDetection')){
+    document.getElementById('stDetection').innerHTML = `DETECTION: <b>${info.detection ? 'RUNNING' : 'STOPPED'}</b>`;
+  }
+  if(document.getElementById('stConnection')){
+    document.getElementById('stConnection').innerHTML = `CONNECTION: <b>${info.connection ? 'ON' : 'OFF'}</b>`;
+  }
 }
+
 function openViewer(index){
-
-    if(!images.length || !images[index]){
-        return;
-    }
-
-    currentImage = index;
-
-    document
-        .getElementById("viewerImage")
-        .src = images[currentImage].url;
-
-    document
-        .getElementById("viewerOverlay")
-        .classList.add("open");
+  if(!images.length || !images[index]){
+    return;
+  }
+  currentImage = index;
+  document.getElementById('viewerImage').src = images[currentImage].url;
+  document.getElementById('viewerOverlay').classList.add('open');
 }
+
 function closeViewer(){
-
-    document
-        .getElementById("viewerOverlay")
-        .classList.remove("open");
+  document.getElementById('viewerOverlay').classList.remove('open');
 }
+
 function viewerOverlayClick(e){
-
-    if(e.target.id=="viewerOverlay"){
-
-        closeViewer();
-
-    }
+  if(e.target.id === 'viewerOverlay'){
+    closeViewer();
+  }
 }
+
 function nextImage(e){
-
-    e.stopPropagation();
-
-    if(!images.length){
-        return;
-    }
-
-    currentImage++;
-
-    if(currentImage>=images.length)
-        currentImage=0;
-
-    document
-        .getElementById("viewerImage")
-        .src=images[currentImage].url;
+  e.stopPropagation();
+  if(!images.length){
+    return;
+  }
+  currentImage++;
+  if(currentImage >= images.length){
+    currentImage = 0;
+  }
+  document.getElementById('viewerImage').src = images[currentImage].url;
 }
+
 function prevImage(e){
-
-    e.stopPropagation();
-
-    if(!images.length){
-        return;
-    }
-
-    currentImage--;
-
-    if(currentImage<0)
-        currentImage=images.length-1;
-
-    document
-        .getElementById("viewerImage")
-        .src=images[currentImage].url;
+  e.stopPropagation();
+  if(!images.length){
+    return;
+  }
+  currentImage--;
+  if(currentImage < 0){
+    currentImage = images.length - 1;
+  }
+  document.getElementById('viewerImage').src = images[currentImage].url;
 }
-document.addEventListener("keydown",(e)=>{
 
-    const viewer =
-        document.getElementById("viewerOverlay");
-
-    if(!viewer.classList.contains("open"))
-        return;
-
-    if(e.key=="ArrowRight")
-        nextImage(e);
-
-    if(e.key=="ArrowLeft")
-        prevImage(e);
-
-    if(e.key=="Escape")
-        closeViewer();
-
+document.addEventListener('keydown', (e) => {
+  const viewer = document.getElementById('viewerOverlay');
+  if(!viewer || !viewer.classList.contains('open')){
+    return;
+  }
+  if(e.key === 'ArrowRight'){
+    nextImage(e);
+  }
+  if(e.key === 'ArrowLeft'){
+    prevImage(e);
+  }
+  if(e.key === 'Escape'){
+    closeViewer();
+  }
 });
-
 
 </script>
 </body>

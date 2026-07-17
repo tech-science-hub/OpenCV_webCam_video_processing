@@ -28,7 +28,9 @@ class CameraPipeline:
                  start_event,
                  stream_queue,
                  load_data_signal,
-                 _queue
+                 _queue,
+                 restart_requested,
+                 shutdown_requested,
                  ):
 
         self.start_stream = start_stream
@@ -44,6 +46,8 @@ class CameraPipeline:
         self.threads = []
         self.last_alert_time = 0
         self.load_data_signal = load_data_signal
+        self.restart_requested = restart_requested
+        self.shutdown_requested = shutdown_requested
         self.video_event = threading.Event()
         self.done_video_event = threading.Event()
         self._queue = _queue
@@ -85,7 +89,9 @@ class CameraPipeline:
             photo_detection_event=self.photo_detection_event,
             load_data_signal = self.load_data_signal,
             _queue = self._queue,
-            route = self.init_route()
+            route = self.init_route(),
+            restart_requested=self.restart_requested,
+            shutdown_requested=self.shutdown_requested
         )
 
         self.detection_worker = ProcessFrame(
@@ -126,6 +132,8 @@ class CameraPipeline:
             cam.start()
 
     def stop(self):
+        if self.server:
+            self.server.stop()
         if self.detection_worker:
             self.detection_worker.stop()
         for cam_id, cam in self.cameras.items():
@@ -134,6 +142,9 @@ class CameraPipeline:
     def run(self):
         while True:
             try:
+                if self.restart_requested.is_set() or self.shutdown_requested.is_set():
+                    return
+
                 self.start_recognition.wait(timeout=1)
 
                 if not self.start_recognition.is_set():

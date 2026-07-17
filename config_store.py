@@ -34,15 +34,17 @@ class ConfigStore:
 
     def read_cameras(self):
         data = self._read_json(self.cameras_path, DEFAULT_CAMERAS)
+        data = self._normalize_cameras(data)
         cameras = data.get("cameras", [])
         data["configured"] = any(
             str(cam.get("source", "")).strip() != ""
+            or str(cam.get("rtsp_url", "")).strip() != ""
             for cam in cameras
         )
         return data
 
     def save_cameras(self, data):
-        self._write_json(self.cameras_path, data or DEFAULT_CAMERAS)
+        self._write_json(self.cameras_path, self._normalize_cameras(data or DEFAULT_CAMERAS))
 
     def read_bot(self):
         data = self._read_json(self.bot_path, DEFAULT_BOT)
@@ -70,6 +72,24 @@ class ConfigStore:
             str(data.get("token", "")).strip() != ""
             and str(data.get("chat_id", "")).strip() != ""
         )
+
+    @staticmethod
+    def _normalize_cameras(data):
+        normalized = {"cameras": []}
+        for index, camera in enumerate((data or {}).get("cameras", [])):
+            source = camera.get("source", camera.get("rtsp_url", ""))
+            if isinstance(source, str) and source.strip().isdigit():
+                source = int(source.strip())
+
+            rtsp_url = camera.get("rtsp_url", source)
+            normalized["cameras"].append({
+                **camera,
+                "id": camera.get("id", index),
+                "name": camera.get("name", f"CAM {index + 1}"),
+                "source": source,
+                "rtsp_url": rtsp_url,
+            })
+        return normalized
 
     @staticmethod
     def _ensure_json(path, default):

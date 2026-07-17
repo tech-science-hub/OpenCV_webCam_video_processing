@@ -2,9 +2,11 @@ import os
 import queue
 import socket
 import threading
+import time
 
 import cv2
 from flask import Flask, Response, jsonify, render_template, request, session, url_for, send_from_directory
+from werkzeug.serving import make_server
 
 from auth_store import AuthStore
 from config_store import ConfigStore
@@ -15,7 +17,8 @@ class Server:
     """Flask dashboard, configuration API, and MJPEG stream server."""
 
     def __init__(self, start_event, start_stream, start_recognition,
-                 stream_flow, photo_detection_event, load_data_signal, _queue, route):
+                 stream_flow, photo_detection_event, load_data_signal, _queue, route,
+                 restart_requested, shutdown_requested):
         self.app = Flask(__name__)
         self.app.secret_key = os.environ.get("SURVEILLANCE_SECRET_KEY", "super-secret")
 
@@ -25,6 +28,8 @@ class Server:
         self.stream_flow = stream_flow
         self.photo_detection_event = photo_detection_event
         self.load_data_signal = load_data_signal
+        self.restart_requested = restart_requested
+        self.shutdown_requested = shutdown_requested
 
         self.config = ConfigStore(route)
         self.auth = AuthStore()
@@ -40,6 +45,9 @@ class Server:
         self.bot_configured = self.config.read_bot().get("configured", False)
         self.detection_started = False
         self.connection_started = False
+        self.restart_in_progress = False
+        self.shutdown_in_progress = False
+        self.http_server = None
 
         self.register_routes()
 
@@ -66,6 +74,8 @@ class Server:
             ('/api/detection/stop', self.stop_detection, ['POST']),
             ('/api/detection/connect', self.start_connection, ['POST']),
             ('/api/detection/reset', self.reset, ['POST']),
+            ('/api/app/shutdown', self.shutdown_application, ['POST']),
+            ('/api/app/restart', self.restart_application, ['POST']),
             ('/api/snapshots', self.snapshot, ['GET']),
             ('/api/colorCameraBtn', self.cameraBtnStatus, ['GET']),
             ('/api/saveGenSettings', self.saveGenSettings, ['POST']),
@@ -91,14 +101,9 @@ class Server:
         host = os.environ.get("SURVEILLANCE_HOST", "100.66.159.67")
         port = int(os.environ.get("SURVEILLANCE_PORT", "8080"))
         print("IP Address:", socket.gethostbyname(socket.gethostname()))
-        print("server runs")
-        self.app.run(
-            debug=False,
-            threaded=True,
-            use_reloader=False,
-            host=host,
-            port=port,
-        )
+        print(f"Listening on {host}:{port}")
+        self.http_server = make_server(host, port, self.app, threaded=True)
+        self.http_server.serve_forever()
 
     def home(self):
         return render_template('surveillance_dashboard.html')
@@ -109,6 +114,7 @@ class Server:
             "camera_count": self.camera_count,
             "bot_set": self.bot_configured,
             "detection": self.detection_started,
+            "connection": self.connection_started,
         })
         return jsonify(status)
 
@@ -217,7 +223,9 @@ class Server:
 
     def start_connection(self):
         self.start_stream.set()
+        self.start_recognition.set()
         self.connection_started = True
+        self.detection_started = True
         return jsonify({"success": True})
 
     def reset(self):
@@ -226,6 +234,36 @@ class Server:
         self.detection_started = False
         self.connection_started = False
         return jsonify({"success": True})
+
+    def restart_application(self):
+        if self.restart_in_progress:
+            return jsonify({
+                "success": False,
+                "message": "Application restart already in progress",
+            }), 409
+
+        self.restart_in_progress = True
+        self.restart_requested.set()
+        threading.Thread(target=self._delayed_server_stop, daemon=True).start()
+        return jsonify({
+            "success": True,
+            "message": "Application restart scheduled",
+        })
+
+    def shutdown_application(self):
+        if self.shutdown_in_progress:
+            return jsonify({
+                "success": False,
+                "message": "Application shutdown already in progress",
+            }), 409
+
+        self.shutdown_in_progress = True
+        self.shutdown_requested.set()
+        threading.Thread(target=self._delayed_server_stop, daemon=True).start()
+        return jsonify({
+            "success": True,
+            "message": "Application shutdown scheduled",
+        })
 
     def snapshot(self):
         pic_path = os.path.join(self.app.root_path, "photos")
@@ -272,3 +310,19 @@ class Server:
         data = self.config.read_settings()
         self.scheduler.apply_settings(data)
         return jsonify(data)
+
+    def _delayed_server_stop(self):
+        time.sleep(1.0)
+        self.start_stream.clear()
+        self.start_recognition.clear()
+        self.photo_detection_event.clear()
+        self.detection_started = False
+        self.connection_started = False
+        self.stop()
+
+    def stop(self):
+        if self.http_server is not None:
+            print("Stopping HTTP server...", flush=True)
+            self.http_server.shutdown()
+            self.http_server.server_close()
+            self.http_server = None
