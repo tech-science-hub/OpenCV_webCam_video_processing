@@ -15,7 +15,7 @@ DEFAULT_SETTINGS = {
     "cleanup_days": "",
     "model_path": "",
     "inference_every_n_frames": 3,
-    "stream_max_fps": 8,
+    "stream_max_fps": 30,
 }
 
 
@@ -59,10 +59,13 @@ class ConfigStore:
         self._write_json(self.bot_path, config)
 
     def read_settings(self):
-        return self._read_json(self.settings_path, DEFAULT_SETTINGS)
+        settings = self._read_json(self.settings_path, DEFAULT_SETTINGS)
+        return {**DEFAULT_SETTINGS, **settings}
 
     def save_settings(self, data):
-        self._write_json(self.settings_path, data or DEFAULT_SETTINGS)
+        settings = self.read_settings()
+        settings.update(data or {})
+        self._write_json(self.settings_path, settings)
 
     @staticmethod
     def is_bot_configured(data):

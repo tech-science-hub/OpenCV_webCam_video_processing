@@ -115,6 +115,7 @@ class Server:
                 "camera_count": self.camera_count,
                 "bot_set": self.bot_configured,
                 "detection": self.detection_started,
+                "connection": self.connection_started,
                 "stream_max_fps": self.stream_max_fps,
             }
         )
@@ -211,7 +212,6 @@ class Server:
 
     def start_connection(self):
         self.start_stream.set()
-        self.start_recognition.set()
         self.connection_started = True
         self.detection_started = True
         return jsonify({"success": True})
@@ -299,7 +299,7 @@ class Server:
 
     def _read_stream_max_fps(self):
         settings = self.config.read_settings()
-        return self._parse_positive_int(settings.get("stream_max_fps"), default=8)
+        return self._parse_positive_int(settings.get("stream_max_fps"), default=30)
 
     def _get_photo_dir(self):
         settings = self.config.read_settings()

@@ -1,5 +1,5 @@
 import glob
-import os
+import platform
 import queue
 import threading
 import time
@@ -48,34 +48,14 @@ class Camera:
         self.thread.start()
 
     def run(self):
-        if isinstance(self.url, int):
-            video_nodes = sorted(glob.glob("/dev/video*"))
-            if not video_nodes:
-                print(
-                    f"Camera {self.cameraID}: local camera index {self.url} requested, "
-                    "but no /dev/video* devices were found. Check USB connection, power, "
-                    "kernel driver support, and whether the webcam is detected by Linux.",
-                    flush=True,
-                )
-                self._is_running = False
-                return
-
-            expected_node = f"/dev/video{self.url}"
-            if not os.path.exists(expected_node):
-                print(
-                    f"Camera {self.cameraID}: requested local camera index {self.url}, "
-                    f"but {expected_node} does not exist. Available devices: {', '.join(video_nodes)}",
-                    flush=True,
-                )
-                self._is_running = False
-                return
-
         if not self._open_capture():
             self._is_running = False
             return
 
         while self._is_running:
             self.start_stream.wait()
+            if not self._is_running:
+                break
             success, image = self.cap.read()
 
             if not success:
@@ -135,25 +115,86 @@ class Camera:
 
     def stop(self):
         self._is_running = False
-        if self.thread and self.thread.is_alive():
-            self.thread.join()
+        self.start_stream.set()
         if self.cap:
             self.cap.release()
-        cv2.destroyAllWindows()
+        if self.thread and self.thread.is_alive():
+            self.thread.join(timeout=2)
+        try:
+            cv2.destroyAllWindows()
+        except cv2.error as exc:
+            if "cvDestroyAllWindows" not in str(exc):
+                raise
 
     def _open_capture(self):
-        self.cap = cv2.VideoCapture(self.url)
-        if self.cap.isOpened():
-            return True
+        source = self._normalize_source(self.url)
+        for backend in self._capture_backends(source):
+            self.cap = cv2.VideoCapture(source, backend) if backend is not None else cv2.VideoCapture(source)
+            if self.cap.isOpened():
+                backend_name = self._backend_name(backend)
+                print(f"Camera {self.cameraID}: opened {source!r} using {backend_name}.", flush=True)
+                return True
+            self.cap.release()
 
-        source = f"camera index {self.url}" if isinstance(self.url, int) else str(self.url)
-        print(
-            f"Camera {self.cameraID}: failed to open {source}. "
-            "If this is a USB webcam, verify /dev/video* exists and the user has access. "
-            "If this is an RTSP stream, verify the URL and network reachability.",
-            flush=True,
-        )
+        if self._is_linux_camera_index(source):
+            video_nodes = sorted(glob.glob("/dev/video*"))
+            available = ", ".join(video_nodes) if video_nodes else "none"
+            print(
+                f"Camera {self.cameraID}: Linux camera index {source} could not be opened. "
+                f"Available /dev/video* devices: {available}.",
+                flush=True,
+            )
+        else:
+            print(
+                f"Camera {self.cameraID}: failed to open {source!r} on {platform.system()}. "
+                "For USB cameras use a numeric index such as 0. For RTSP, verify the URL and network reachability.",
+                flush=True,
+            )
         return False
+
+    @staticmethod
+    def _normalize_source(source):
+        if isinstance(source, str) and source.strip().isdigit():
+            return int(source.strip())
+        return source
+
+    @staticmethod
+    def _capture_backends(source):
+        if not isinstance(source, int):
+            return [cv2.CAP_FFMPEG, cv2.CAP_ANY]
+
+        system = platform.system().lower()
+        if system == "windows":
+            return [cv2.CAP_MSMF, cv2.CAP_DSHOW, cv2.CAP_ANY]
+        if system == "linux":
+            return [cv2.CAP_V4L2, cv2.CAP_ANY]
+        if system == "darwin":
+            return [cv2.CAP_AVFOUNDATION, cv2.CAP_ANY]
+        return [cv2.CAP_ANY]
+
+    @staticmethod
+    def _is_linux_camera_index(source):
+        return isinstance(source, int) and platform.system().lower() == "linux"
+
+    @staticmethod
+    def _backend_name(backend):
+        names = {
+            cv2.CAP_ANY: "CAP_ANY",
+            cv2.CAP_FFMPEG: "CAP_FFMPEG",
+            cv2.CAP_DSHOW: "CAP_DSHOW",
+            cv2.CAP_MSMF: "CAP_MSMF",
+            cv2.CAP_V4L2: "CAP_V4L2",
+        }
+        if hasattr(cv2, "CAP_AVFOUNDATION"):
+            names[cv2.CAP_AVFOUNDATION] = "CAP_AVFOUNDATION"
+        if backend is None:
+            return "default backend"
+        return names.get(backend, str(backend))
+
+    def status(self):
+        if self.thread and self.thread.is_alive():
+            return False
+        return True
 
     def _reopen_capture(self):
         if self.cap:

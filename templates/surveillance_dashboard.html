@@ -57,6 +57,34 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
     animation: blink-status 1s infinite;
 }
 
+.system-status{
+    position:absolute;
+    top:8px;
+    left:8px;
+    right:8px;
+    z-index:4;
+    display:flex;
+    flex-wrap:wrap;
+    gap:18px;
+    align-items:center;
+    padding:8px 12px;
+    border:1px solid #1a3a1a;
+    border-radius:6px;
+    background:rgba(11,18,11,.92);
+    color:#7fff7f;
+    font-size:13px;
+    letter-spacing:.08em;
+}
+
+.system-status span{
+    white-space:nowrap;
+}
+
+.system-status b{
+    color:#ffff66;
+    font-weight:600;
+}
+
 @keyframes blink-status{
     0%,100%{opacity:1}
     50%{opacity:0.2}
@@ -70,7 +98,7 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
   min-height:0;
   display:grid;
   gap:12px;
-  padding:8px;
+  padding:58px 8px 8px;
   overflow:auto;
 }
 
@@ -370,14 +398,17 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 }
 
 .snapshots-modal{
-  width:clamp(280px,85%,900px);
+  width:min(92vw,1100px);
+  max-width:1100px;
+  height:min(82vh,760px);
 }
 
 .snapshots-content{
   display:grid;
-  grid-template-columns:repeat(auto-fill,minmax(140px,1fr));
-  gap:10px;
-  max-height:60vh;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  gap:12px;
+  min-height:0;
+  max-height:calc(82vh - 120px);
   overflow-y:auto;
 }
 
@@ -410,6 +441,48 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
     max-height:100%;
     object-fit:contain;
 }
+
+.viewer-image{
+    max-width:90vw;
+    max-height:90vh;
+    object-fit:contain;
+}
+
+.viewer-btn{
+    position:absolute;
+    top:50%;
+    transform:translateY(-50%);
+    width:64px;
+    height:64px;
+    border-radius:50%;
+    border:1px solid #1a3a1a;
+    background:rgba(0,0,0,.68);
+    color:#7fff7f;
+    font-size:40px;
+    cursor:pointer;
+    z-index:2;
+}
+
+.viewer-prev{
+    left:20px;
+}
+
+.viewer-next{
+    right:20px;
+}
+
+.viewer-btn:hover{
+    background:#0d1a0d;
+}
+
+.viewer-stage{
+    position:relative;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    max-width:90vw;
+    max-height:90vh;
+}
 .bottombar{
 
     position:sticky;
@@ -439,6 +512,72 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
     min-height:220px;
     aspect-ratio:16/9;
   }
+}
+
+#snapshotsOverlay,
+#viewerOverlay{
+  position:fixed;
+  inset:0;
+  z-index:1000;
+}
+
+#snapshotsOverlay .snapshots-modal{
+  width:min(92vw,1100px);
+  max-width:none;
+  height:min(82vh,760px);
+  max-height:82vh;
+}
+
+#snapshotsContent{
+  display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(180px,1fr));
+  align-content:start;
+  gap:12px;
+  flex:1 1 auto;
+  min-height:0;
+  overflow-y:auto;
+}
+
+#snapshotsOverlay .modal-actions{
+  flex:0 0 auto;
+  margin-top:auto;
+}
+
+#snapshotsContent .snapshot-img{
+  width:100%;
+  aspect-ratio:16/9;
+  object-fit:cover;
+}
+
+#viewerOverlay{
+  background:rgba(0,0,0,.86);
+}
+
+#viewerImage.viewer-image{
+  max-width:90vw;
+  max-height:90vh;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+  flex:0 1 auto;
+}
+
+#viewerOverlay .viewer-btn{
+  position:absolute;
+  top:50%;
+  transform:translateY(-50%);
+  flex:0 0 auto;
+  z-index:1001;
+}
+
+#viewerOverlay .viewer-prev{
+  left:12px;
+  right:auto;
+}
+
+#viewerOverlay .viewer-next{
+  right:12px;
+  left:auto;
 }
 
 </style>
@@ -490,7 +629,17 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
       <div class="field">
         <div class="scanline"></div>
         <div class="grid-overlay"></div>
-        
+
+        <div id="systemStatus" class="system-status">
+          <span id="stSchedule">AUTO START: <b>OFF</b></span>
+          <span id="stDelete">AUTO DELETE: <b>OFF</b></span>
+          <span id="stPhotoDir">PHOTO PATH: <b>NOT SET</b></span>
+          <span id="stCameras">CAMERAS: <b>NOT SET</b></span>
+          <span id="stBot">BOT: <b>NOT SET</b></span>
+          <span id="stDetection">DETECTION: <b>STOPPED</b></span>
+          <span id="stConnection">CONNECTION: <b>OFF</b></span>
+        </div>
+
         <div id="cameraGrid" class="camera-grid"></div>
         <div class="btns-area"></div>
 
@@ -534,11 +683,13 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
             </div>
           </div>
         </div>
-         <!-- IMAGE VIEWER -->
-        <div class="overlay" id="imageViewer">
-            <div class="image-viewer-box">
-                <img id="viewerImage">
-            </div>
+        <!-- IMAGE VIEWER -->
+        <div class="overlay" id="viewerOverlay" onclick="viewerOverlayClick(event)">
+          <div class="viewer-stage" onclick="event.stopPropagation()">
+            <button class="viewer-btn viewer-prev" onclick="prevImage(event)">&#10094;</button>
+            <img id="viewerImage" class="viewer-image">
+            <button class="viewer-btn viewer-next" onclick="nextImage(event)">&#10095;</button>
+          </div>
         </div>
         <!-- BOT MODAL -->
         <div class="overlay" id="botOverlay" onclick="botOverlayClick(event)">
@@ -687,6 +838,10 @@ body{font-family:'Courier New',monospace;background:#0a0f0a}
 
 <script>
 // --- AUTH ---
+let images = [];
+let currentImage = 0;
+let touchStartX = 0;
+let touchEndX = 0;
 
 async function doLogin(){
 
@@ -782,21 +937,16 @@ async function openFilesModal(){
     const data = await res.json();
     content.innerHTML = '';
     if(!data.images || data.images.length === 0){
+      images = [];
       content.innerHTML = `<div class="snapshot-empty">NO SAVED PICTURES</div>`;
       return;
     }
-    data.images.forEach(item => {
+    images = data.images || [];
+    images.forEach((item, index) => {
       const img = document.createElement('img');
       img.className = 'snapshot-img';
       img.src = item.url;
-      img.onclick = () =>{ 
-        // window.open(item.url, '_blank');
-      document.getElementById('viewerImage').src = item.url;
-
-      document
-        .getElementById('imageViewer')
-        .classList.add('open');
-      };
+      img.onclick = () => openViewer(index);
       content.appendChild(img);
       
     });
@@ -1243,14 +1393,19 @@ document.addEventListener('DOMContentLoaded', async () => {
   const botData = await botRes.json();
   loadBotStatus(botData);
   await updateSystemInfo();
-   document
-      .getElementById('imageViewer')
-      .addEventListener('click', function(e){
-
-          if(e.target.id === 'imageViewer'){
-              this.classList.remove('open');
-          }
-      });
+  const viewer = document.getElementById('viewerOverlay');
+  viewer.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  });
+  viewer.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    if(touchEndX - touchStartX > 50){
+      prevImage(e);
+    }
+    if(touchStartX - touchEndX > 50){
+      nextImage(e);
+    }
+  });
 });
 
 async function connectCam(){
@@ -1317,7 +1472,69 @@ async function updateSystemInfo(){
   if(document.getElementById('stDetection')){
     document.getElementById('stDetection').innerHTML = `DETECTION: <b>${info.detection ? 'RUNNING' : 'STOPPED'}</b>`;
   }
+  if(document.getElementById('stConnection')){
+    document.getElementById('stConnection').innerHTML = `CONNECTION: <b>${info.connection ? 'ON' : 'OFF'}</b>`;
+  }
 }
+
+function openViewer(index){
+  if(!images.length || !images[index]){
+    return;
+  }
+  currentImage = index;
+  document.getElementById('viewerImage').src = images[currentImage].url;
+  document.getElementById('viewerOverlay').classList.add('open');
+}
+
+function closeViewer(){
+  document.getElementById('viewerOverlay').classList.remove('open');
+}
+
+function viewerOverlayClick(e){
+  if(e.target.id === 'viewerOverlay'){
+    closeViewer();
+  }
+}
+
+function nextImage(e){
+  e.stopPropagation();
+  if(!images.length){
+    return;
+  }
+  currentImage++;
+  if(currentImage >= images.length){
+    currentImage = 0;
+  }
+  document.getElementById('viewerImage').src = images[currentImage].url;
+}
+
+function prevImage(e){
+  e.stopPropagation();
+  if(!images.length){
+    return;
+  }
+  currentImage--;
+  if(currentImage < 0){
+    currentImage = images.length - 1;
+  }
+  document.getElementById('viewerImage').src = images[currentImage].url;
+}
+
+document.addEventListener('keydown', (e) => {
+  const viewer = document.getElementById('viewerOverlay');
+  if(!viewer || !viewer.classList.contains('open')){
+    return;
+  }
+  if(e.key === 'ArrowRight'){
+    nextImage(e);
+  }
+  if(e.key === 'ArrowLeft'){
+    prevImage(e);
+  }
+  if(e.key === 'Escape'){
+    closeViewer();
+  }
+});
 
 </script>
 </body>

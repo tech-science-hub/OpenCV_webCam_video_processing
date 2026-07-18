@@ -199,7 +199,7 @@ class CameraPipeline:
                             thickness=1,
                         )
 
-                        if change_ratio > 0.02:
+                        if change_ratio > 0.05:
                             alert_needed = True
 
                 if alert_needed:
