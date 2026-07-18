@@ -1,22 +1,16 @@
+import glob
+import platform
 import queue
-import cv2
-import time
 import threading
-import cvzone as cvz
+import time
 from datetime import datetime
 
-time_out = 15
+import cv2
+import cvzone as cvz
+
 fps_avg_frame_count = 15
 row_size = 20
 left_margin = 5
-text_color = (0, 0, 255)
-font_size = 2
-font_thickness = 1
-_MARGIN = 10
-_ROW_SIZE = 10
-_FONT_SIZE = 1
-_FONT_THICKNESS = 1
-_TEXT_COLOR = (0, 255, 0)
 
 
 class Camera:
@@ -37,7 +31,6 @@ class Camera:
         self.join = None
         self.frame_lock = threading.Lock()
         self.last_frame = None
-        self.start_time = time.time()
         self._is_connected = None
         self.export_frame = None
         self.counter = 0
@@ -46,30 +39,41 @@ class Camera:
         self.queue_to_stream = queue_to_stream
         self.type = None
         self.previous_frame = None
+        self.read_failures = 0
 
     def start(self):
         self._is_running = True
-        self.thread = threading.Thread(
-            target=self.run,
-            daemon=True
-        )
+        self.thread = threading.Thread(target=self.run, daemon=True)
         print(f"camera {self.cameraID} runs")
         self.thread.start()
 
     def run(self):
-        self.cap = cv2.VideoCapture(self.url)
+        if not self._open_capture():
+            self._is_running = False
+            return
 
         while self._is_running:
-            # The dashboard controls this event; cameras wait here until streaming is enabled.
             self.start_stream.wait()
             if not self._is_running:
                 break
             success, image = self.cap.read()
-            timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
 
             if not success:
+                self.read_failures += 1
+                print(
+                    f"Camera {self.cameraID}: frame read failed from source {self.url}. Retrying...",
+                    flush=True,
+                )
+                if self.read_failures >= 5:
+                    print(
+                        f"Camera {self.cameraID}: reopening source after {self.read_failures} consecutive read failures.",
+                        flush=True,
+                    )
+                    self._reopen_capture()
                 time.sleep(1)
                 continue
+
+            self.read_failures = 0
             h, w = image.shape[:2]
 
             if self.counter % fps_avg_frame_count == 0:
@@ -77,50 +81,27 @@ class Camera:
                 self.fps = fps_avg_frame_count / (end_time - self.start_time)
                 self.start_time = time.time()
 
-            fps_text = 'FPS = {:.1f}'.format(self.fps)
+            fps_text = "FPS = {:.1f}".format(self.fps)
             text_location = (left_margin, row_size)
             timestamp = datetime.now().strftime("%Y-%m-%d %H:%M")
-            (text_w, text_h), _ = cv2.getTextSize(
-                timestamp,
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                1
-            )
+            (text_w, text_h), _ = cv2.getTextSize(timestamp, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
 
-            cvz.putTextRect(image,
-                            fps_text,
-                            text_location,
-                            1, 1,
-                            (255, 255, 255),
-                            (0, 0, 0)
-                            )
-            cvz.putTextRect(image,
-                            timestamp,
-                            (w-text_w, text_h),
-                            1, 1,
-                            (255, 255, 255),
-                            (0, 0, 0)
-                            )
+            cvz.putTextRect(image, fps_text, text_location, 1, 1, (255, 255, 255), (0, 0, 0))
+            cvz.putTextRect(image, timestamp, (w - text_w, text_h), 1, 1, (255, 255, 255), (0, 0, 0))
+
             with self.frame_lock:
                 self.last_frame = image.copy()
 
-            payload = (
-                self.cameraID,
-                time.time(),
-                image
-            )
+            payload = (self.cameraID, time.time(), image)
 
-            # Keep only the newest frame so detection and streaming do not lag behind live video.
             for q in (self.queue_to_detection, self.queue_to_stream):
                 if q.full():
                     try:
                         q.get_nowait()
                     except queue.Empty:
                         pass
-
                 try:
                     q.put_nowait(payload)
-
                 except queue.Full:
                     pass
 
@@ -131,18 +112,6 @@ class Camera:
             if self.last_frame is None:
                 return None
             return self.last_frame
-
-    def restart(self):
-        print(f"restart camera {self.cameraID}")
-        self.stop()
-        time.sleep(5)
-        self.launch()
-
-    def status(self):
-        if self.thread.is_alive():
-            return False
-        else:
-            return True
 
     def stop(self):
         self._is_running = False
@@ -156,3 +125,81 @@ class Camera:
         except cv2.error as exc:
             if "cvDestroyAllWindows" not in str(exc):
                 raise
+
+    def _open_capture(self):
+        source = self._normalize_source(self.url)
+        for backend in self._capture_backends(source):
+            self.cap = cv2.VideoCapture(source, backend) if backend is not None else cv2.VideoCapture(source)
+            if self.cap.isOpened():
+                backend_name = self._backend_name(backend)
+                print(f"Camera {self.cameraID}: opened {source!r} using {backend_name}.", flush=True)
+                return True
+            self.cap.release()
+
+        if self._is_linux_camera_index(source):
+            video_nodes = sorted(glob.glob("/dev/video*"))
+            available = ", ".join(video_nodes) if video_nodes else "none"
+            print(
+                f"Camera {self.cameraID}: Linux camera index {source} could not be opened. "
+                f"Available /dev/video* devices: {available}.",
+                flush=True,
+            )
+        else:
+            print(
+                f"Camera {self.cameraID}: failed to open {source!r} on {platform.system()}. "
+                "For USB cameras use a numeric index such as 0. For RTSP, verify the URL and network reachability.",
+                flush=True,
+            )
+        return False
+
+    @staticmethod
+    def _normalize_source(source):
+        if isinstance(source, str) and source.strip().isdigit():
+            return int(source.strip())
+        return source
+
+    @staticmethod
+    def _capture_backends(source):
+        if not isinstance(source, int):
+            return [cv2.CAP_FFMPEG, cv2.CAP_ANY]
+
+        system = platform.system().lower()
+        if system == "windows":
+            return [cv2.CAP_MSMF, cv2.CAP_DSHOW, cv2.CAP_ANY]
+        if system == "linux":
+            return [cv2.CAP_V4L2, cv2.CAP_ANY]
+        if system == "darwin":
+            return [cv2.CAP_AVFOUNDATION, cv2.CAP_ANY]
+        return [cv2.CAP_ANY]
+
+    @staticmethod
+    def _is_linux_camera_index(source):
+        return isinstance(source, int) and platform.system().lower() == "linux"
+
+    @staticmethod
+    def _backend_name(backend):
+        names = {
+            cv2.CAP_ANY: "CAP_ANY",
+            cv2.CAP_FFMPEG: "CAP_FFMPEG",
+            cv2.CAP_DSHOW: "CAP_DSHOW",
+            cv2.CAP_MSMF: "CAP_MSMF",
+            cv2.CAP_V4L2: "CAP_V4L2",
+        }
+        if hasattr(cv2, "CAP_AVFOUNDATION"):
+            names[cv2.CAP_AVFOUNDATION] = "CAP_AVFOUNDATION"
+        if backend is None:
+            return "default backend"
+        return names.get(backend, str(backend))
+
+    def status(self):
+        if self.thread and self.thread.is_alive():
+            return False
+        return True
+
+    def _reopen_capture(self):
+        if self.cap:
+            self.cap.release()
+        time.sleep(2)
+        if self._open_capture():
+            self.read_failures = 0
+            print(f"Camera {self.cameraID}: source reopened successfully.", flush=True)

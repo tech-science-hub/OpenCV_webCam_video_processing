@@ -1,15 +1,17 @@
+import json
 import queue
 import threading
 import time
-import cv2
-from camera import Camera
-from photo_rec import Photo_Record
-from messanger import Telegram as TG
-from recognition import ProcessFrame
-import cvzone as cvz
-from Server import Server
-import json
 from pathlib import Path
+
+import cv2
+import cvzone as cvz
+
+from Server import Server
+from camera import Camera
+from messanger import Telegram as TG
+from photo_rec import Photo_Record
+from recognition import ProcessFrame
 
 PROJECT_ROOT = Path(__file__).resolve().parent
 DEFAULT_PHOTO_DIR = PROJECT_ROOT / "photos"
@@ -18,21 +20,21 @@ DEFAULT_PHOTO_DIR = PROJECT_ROOT / "photos"
 class CameraPipeline:
     """Wire together capture, detection, streaming, snapshot, and Telegram workers."""
 
-    def __init__(self,
-                 start_stream,
-                 start_recognition,
-                 inference_queue,
-                 photo_detection_event,
-                 pic_queue,
-                 tg_queue,
-                 start_event,
-                 stream_queue,
-                 load_data_signal,
-                 _queue,
-                 restart_requested,
-                 shutdown_requested,
-                 ):
-
+    def __init__(
+        self,
+        start_stream,
+        start_recognition,
+        inference_queue,
+        photo_detection_event,
+        pic_queue,
+        tg_queue,
+        start_event,
+        stream_queue,
+        load_data_signal,
+        _queue,
+        restart_requested,
+        shutdown_requested,
+    ):
         self.start_stream = start_stream
         self.start_recognition = start_recognition
         self.inference_queue = inference_queue
@@ -66,37 +68,36 @@ class CameraPipeline:
         cam = self.route / "cameras.json"
         with cam.open("r", encoding="utf-8") as f:
             camera = json.load(f)
-            # Camera definitions are loaded at startup from the dashboard-managed JSON file.
             for cam_data in camera["cameras"]:
                 cam_id = cam_data["id"]
                 self.cameras[cam_id] = Camera(
-                                        cameraID=cam_id,
-                                        url=cam_data["source"],
-                                        frame_data=self.pic_queue,
-                                        queue_to_detection=self.inference_queue,
-                                        queue_to_stream=self.stream_queue,
-                                        restart=None,
-                                        start_stream=self.start_stream
+                    cameraID=cam_id,
+                    url=cam_data["source"],
+                    frame_data=self.pic_queue,
+                    queue_to_detection=self.inference_queue,
+                    queue_to_stream=self.stream_queue,
+                    restart=None,
+                    start_stream=self.start_stream,
                 )
 
     def start(self):
-        # These workers communicate through queues/events instead of calling each other directly.
         self.server = Server(
             start_event=self.start_event,
             stream_flow=self.stream_queue,
             start_stream=self.start_stream,
             start_recognition=self.start_recognition,
             photo_detection_event=self.photo_detection_event,
-            load_data_signal = self.load_data_signal,
-            _queue = self._queue,
-            route = self.init_route(),
+            load_data_signal=self.load_data_signal,
+            _queue=self._queue,
+            route=self.init_route(),
             restart_requested=self.restart_requested,
-            shutdown_requested=self.shutdown_requested
+            shutdown_requested=self.shutdown_requested,
         )
 
         self.detection_worker = ProcessFrame(
             queue_to_detection=self.inference_queue,
-            start_event=self.start_event
+            start_event=self.start_event,
+            settings_path=self.route / "settings.json",
         )
 
         self.photo_record = Photo_Record(
@@ -104,14 +105,14 @@ class CameraPipeline:
             video_event=self.video_event,
             done_video_event=self.done_video_event,
             set_dir_path=str(DEFAULT_PHOTO_DIR),
-            _queue = self._queue
+            _queue=self._queue,
         )
 
         self.tg = TG(
             detection_event=self.start_event,
             photo_detection_event=self.photo_detection_event,
             frame_queue=self.tg_queue,
-            bot_data=self.route / "bot.json"
+            bot_data=self.route / "bot.json",
         )
 
         self.threads = [
@@ -124,7 +125,6 @@ class CameraPipeline:
             t.start()
 
         self.detection_worker.start()
-
         self.build_cameras()
 
         for cam_id, cam in self.cameras.items():
@@ -136,7 +136,7 @@ class CameraPipeline:
             self.server.stop()
         if self.detection_worker:
             self.detection_worker.stop()
-        for cam_id, cam in self.cameras.items():
+        for cam in self.cameras.values():
             cam.stop()
 
     def run(self):
@@ -160,7 +160,6 @@ class CameraPipeline:
                 if detections is None:
                     continue
 
-                # Motion is checked separately from YOLO to avoid sending alerts for static objects.
                 gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 gray = cv2.GaussianBlur(gray_frame, (21, 21), 0)
 
@@ -169,18 +168,12 @@ class CameraPipeline:
                     continue
 
                 diff = cv2.absdiff(self.previous_frame[camera_id], gray)
-                _, thresh = cv2.threshold(
-                    diff,
-                    25,
-                    255,
-                    cv2.THRESH_BINARY
-                )
+                _, thresh = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)
                 thresh = cv2.dilate(thresh, None, iterations=2)
                 changed_pixels = cv2.countNonZero(thresh)
-
                 total_pixels = thresh.shape[0] * thresh.shape[1]
-
                 change_ratio = changed_pixels / total_pixels
+                alert_needed = False
 
                 for detec in detections:
                     x1, y1, x2, y2 = detec["bbox"]
@@ -194,7 +187,7 @@ class CameraPipeline:
                             1,
                             1,
                             (0, 255, 0),
-                            (0, 0, 255)
+                            (0, 0, 255),
                         )
 
                         cvz.putTextRect(
@@ -203,31 +196,37 @@ class CameraPipeline:
                             (max(0, x1), max(40, y1)),
                             scale=0.6,
                             offset=3,
-                            thickness=1
+                            thickness=1,
                         )
 
-                        if change_ratio > 0.02:
-                            self.last_alert_time = time.time()
+                        if change_ratio > 0.05:
+                            alert_needed = True
 
-                            # Snapshot and Telegram queues are single-purpose consumers of the alert frame.
-                            if self.pic_queue.full():
-                                try:
-                                    self.pic_queue.get_nowait()
-                                except queue.Empty:
-                                    pass
+                if alert_needed:
+                    self.last_alert_time = time.time()
 
+                    for target_queue in (self.pic_queue, self.tg_queue):
+                        if target_queue.full():
                             try:
-                                self.photo_detection_event.set()
-                                self.pic_queue.put_nowait(frame)
-                                self.tg_queue.put_nowait(frame)
-                            except queue.Full:
+                                target_queue.get_nowait()
+                            except queue.Empty:
                                 pass
-                self.previous_frame[camera_id] = gray.copy()
 
+                    try:
+                        self.pic_queue.put_nowait(frame)
+                    except queue.Full:
+                        pass
+
+                    try:
+                        self.tg_queue.put_nowait(frame)
+                        self.photo_detection_event.set()
+                    except queue.Full:
+                        pass
+
+                self.previous_frame[camera_id] = gray.copy()
 
             except queue.Empty:
                 raise RuntimeError("No frames received from camera queue")
-
             except Exception as e:
                 print(f"Runtime error inside app_run: {e}", flush=True)
                 break

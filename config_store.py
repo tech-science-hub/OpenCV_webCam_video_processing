@@ -13,6 +13,9 @@ DEFAULT_SETTINGS = {
     "schedule_time": "",
     "photo_save_dir": "",
     "cleanup_days": "",
+    "model_path": "",
+    "inference_every_n_frames": 3,
+    "stream_max_fps": 30,
 }
 
 
@@ -34,17 +37,12 @@ class ConfigStore:
 
     def read_cameras(self):
         data = self._read_json(self.cameras_path, DEFAULT_CAMERAS)
-        data = self._normalize_cameras(data)
         cameras = data.get("cameras", [])
-        data["configured"] = any(
-            str(cam.get("source", "")).strip() != ""
-            or str(cam.get("rtsp_url", "")).strip() != ""
-            for cam in cameras
-        )
+        data["configured"] = any(str(cam.get("source", "")).strip() != "" for cam in cameras)
         return data
 
     def save_cameras(self, data):
-        self._write_json(self.cameras_path, self._normalize_cameras(data or DEFAULT_CAMERAS))
+        self._write_json(self.cameras_path, data or DEFAULT_CAMERAS)
 
     def read_bot(self):
         data = self._read_json(self.bot_path, DEFAULT_BOT)
@@ -61,35 +59,17 @@ class ConfigStore:
         self._write_json(self.bot_path, config)
 
     def read_settings(self):
-        return self._read_json(self.settings_path, DEFAULT_SETTINGS)
+        settings = self._read_json(self.settings_path, DEFAULT_SETTINGS)
+        return {**DEFAULT_SETTINGS, **settings}
 
     def save_settings(self, data):
-        self._write_json(self.settings_path, data or DEFAULT_SETTINGS)
+        settings = self.read_settings()
+        settings.update(data or {})
+        self._write_json(self.settings_path, settings)
 
     @staticmethod
     def is_bot_configured(data):
-        return (
-            str(data.get("token", "")).strip() != ""
-            and str(data.get("chat_id", "")).strip() != ""
-        )
-
-    @staticmethod
-    def _normalize_cameras(data):
-        normalized = {"cameras": []}
-        for index, camera in enumerate((data or {}).get("cameras", [])):
-            source = camera.get("source", camera.get("rtsp_url", ""))
-            if isinstance(source, str) and source.strip().isdigit():
-                source = int(source.strip())
-
-            rtsp_url = camera.get("rtsp_url", source)
-            normalized["cameras"].append({
-                **camera,
-                "id": camera.get("id", index),
-                "name": camera.get("name", f"CAM {index + 1}"),
-                "source": source,
-                "rtsp_url": rtsp_url,
-            })
-        return normalized
+        return str(data.get("token", "")).strip() != "" and str(data.get("chat_id", "")).strip() != ""
 
     @staticmethod
     def _ensure_json(path, default):

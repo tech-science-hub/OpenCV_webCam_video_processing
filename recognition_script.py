@@ -1,20 +1,18 @@
-import queue
-import threading
 import os
+import threading
 from queue import Queue
+
 from Pipeline import CameraPipeline
 
 os.environ["OPENCV_FFMPEG_CAPTURE_OPTIONS"] = "rtsp_transport;tcp"
 
 
-
 def main():
     while True:
-
         # Queues with size 1 intentionally favor live frames over backlog processing.
         _queue = Queue(maxsize=1)
         pic_queue = Queue(maxsize=1)
-        tg_queue = Queue(maxsize=5)
+        tg_queue = Queue(maxsize=1)
         stream_queue = Queue(maxsize=1)
         inference_queue = Queue(maxsize=1)
         load_data_signal = threading.Event()
@@ -37,7 +35,8 @@ def main():
             load_data_signal,
             _queue,
             restart_requested,
-            shutdown_requested)
+            shutdown_requested,
+        )
 
         try:
             cp.start()
@@ -54,8 +53,6 @@ def main():
 
         break
 
+
 if __name__ == "__main__":
     main()
-
-
-
