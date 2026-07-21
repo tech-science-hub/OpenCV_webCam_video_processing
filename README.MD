@@ -1,6 +1,8 @@
 # Surveillance Project
 
-This directory contains a local IP-camera surveillance application. It captures camera streams, runs YOLO object detection, displays live video in a Flask web dashboard, saves snapshots, and can send Telegram alerts when motion and target objects are detected.
+This directory contains a local IP-camera surveillance application. 
+It captures camera streams, runs YOLO object detection, displays live video in a Flask web dashboard, 
+saves snapshots, and can send Telegram alerts when motion and target objects are detected.
 
 The scope of this README is only the `survilance` directory.
 
@@ -38,7 +40,7 @@ The Flask server currently starts on port `8080`.
 
 ```text
 survilance/
-  recognition_script.py      Main launcher
+  start_recognition.py       Main launcher
   Pipeline.py                Starts and coordinates server, cameras, detection, snapshots, Telegram
   Server.py                  Flask web server, dashboard routes, API routes, auth, settings
   camera.py                  Active camera capture class
@@ -54,10 +56,8 @@ survilance/
     cameras.json             Camera list and sources
     bot.json                 Telegram bot settings
     settings.json            Schedule, photo path, cleanup settings
-  photos/                    Saved snapshots
+  <path_to_photo_dir>/       Saved snapshots
 ```
-
-`camera_source.py`, `run_file.py`, and `server_script.py` appear to be older or alternate versions of the active pipeline.
 
 ## Configuration Files
 
@@ -102,7 +102,7 @@ Stores general runtime settings:
 
 ```json
 {
-  "schedule_time": "07:00",
+  "schedule_time": "--:--",
   "photo_save_dir": "C:/path/to/photos",
   "cleanup_days": null
 }
@@ -145,13 +145,14 @@ The code uses:
 The current repository has a virtual environment one level above this directory in `.venv`. If using that environment from `survilance`, commands look like:
 
 ```powershell
-..\.venv\Scripts\python.exe recognition_script.py
+..\.venv\Scripts\python.exe start_recognition.py
 ```
 
 ## Runtime Notes
 
 - The default dashboard credentials are created in `users.db` as `admin` / `admin` if no user exists.
-- `Server.py` currently binds to a fixed host IP and port `8080`. If the server does not start on another machine, update the `host` value in `Server.run()`.
+- `Server.py` currently binds to a fixed host IP and port `8080`. 
+- If the server does not start on another machine, update the `host` value in `Server.run()`.
 - The model path used by detection is `Ip_cam_survilance/yolo11n.pt`.
 - RTSP transport is set to TCP in `recognition_script.py` through `OPENCV_FFMPEG_CAPTURE_OPTIONS`.
 - Generated files such as `.db` files, snapshots, and local credentials should normally stay out of version control.
@@ -164,7 +165,12 @@ This project stores camera URLs, Telegram tokens, chat IDs, and dashboard creden
 - `system_settings/bot.json`
 - `system_settings/cameras.json`
 - `users.db`
-- `bot.db`
-- `cameras.db`
+
 
 Before sharing or committing the project, remove real tokens, passwords, chat IDs, and RTSP credentials.
+
+Output example:
+saved photos on hdd looks like:
+![Alt text](path/to/image.png)
+bot in Telegram sends a detection pic into chat:
+[video]
