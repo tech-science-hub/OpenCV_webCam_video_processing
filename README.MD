@@ -102,7 +102,7 @@ Stores general runtime settings:
 
 ```json
 {
-  "schedule_time": "07:00",
+  "schedule_time": "--:--",
   "photo_save_dir": "C:/path/to/photos",
   "cleanup_days": null
 }
