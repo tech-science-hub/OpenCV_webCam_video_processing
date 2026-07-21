@@ -212,9 +212,7 @@ class Server:
 
     def start_connection(self):
         self.start_stream.set()
-        self.start_recognition.set()
         self.connection_started = True
-        self.detection_started = True
         return jsonify({"success": True})
 
     def reset(self):

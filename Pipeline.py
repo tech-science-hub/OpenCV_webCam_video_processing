@@ -6,7 +6,7 @@ from pathlib import Path
 
 import cv2
 import cvzone as cvz
-
+import numpy as np
 from Server import Server
 from camera import Camera
 from messanger import Telegram as TG
@@ -58,6 +58,7 @@ class CameraPipeline:
         self.server = None
         self.photo_record = None
         self.tg = None
+        self.pixel_ratio_treshhold = 0.04
 
     def init_route(self):
         settings_dir = PROJECT_ROOT / "system_settings"
@@ -168,14 +169,17 @@ class CameraPipeline:
                     continue
 
                 diff = cv2.absdiff(self.previous_frame[camera_id], gray)
-                _, thresh = cv2.threshold(diff, 25, 255, cv2.THRESH_BINARY)
-                thresh = cv2.dilate(thresh, None, iterations=2)
+                _, thresh = cv2.threshold(diff, 50, 255, cv2.THRESH_BINARY)
+                kernel = np.ones((3, 3), dtype=np.uint8)
+                thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, kernel)
+                thresh = cv2.dilate(thresh, kernel, iterations=2)
                 changed_pixels = cv2.countNonZero(thresh)
-                total_pixels = thresh.shape[0] * thresh.shape[1]
-                change_ratio = changed_pixels / total_pixels
+                #total_pixels = thresh.shape[0] * thresh.shape[1]
+                change_ratio = changed_pixels / thresh.size
                 alert_needed = False
 
                 for detec in detections:
+
                     x1, y1, x2, y2 = detec["bbox"]
                     label = f'{detec["class"]} {detec["conf"]:.2f}'
 
@@ -199,7 +203,7 @@ class CameraPipeline:
                             thickness=1,
                         )
 
-                        if change_ratio > 0.05:
+                        if change_ratio > self.pixel_ratio_treshhold:
                             alert_needed = True
 
                 if alert_needed:
@@ -230,3 +234,4 @@ class CameraPipeline:
             except Exception as e:
                 print(f"Runtime error inside app_run: {e}", flush=True)
                 break
+
