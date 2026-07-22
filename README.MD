@@ -169,5 +169,5 @@ This project stores camera URLs, Telegram tokens, chat IDs, and dashboard creden
 
 Before sharing or committing the project, remove real tokens, passwords, chat IDs, and RTSP credentials.
 
-full topic for reading here bellow:
+Full topic for reading here bellow:
 https://www.hackster.io/Dima_Panasenko/surveillance-system-with-computer-256d6a
