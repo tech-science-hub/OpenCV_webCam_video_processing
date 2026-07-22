@@ -23,7 +23,7 @@ The scope of this README is only the `survilance` directory.
 Run the application from this directory with:
 
 ```powershell
-python recognition_script.py
+python start_recognition.py
 ```
 
 The script starts `CameraPipeline`, which coordinates:
@@ -154,7 +154,7 @@ The current repository has a virtual environment one level above this directory 
 - `Server.py` currently binds to a fixed host IP and port `8080`. 
 - If the server does not start on another machine, update the `host` value in `Server.run()`.
 - The model path used by detection is `Ip_cam_survilance/yolo11n.pt`.
-- RTSP transport is set to TCP in `recognition_script.py` through `OPENCV_FFMPEG_CAPTURE_OPTIONS`.
+- RTSP transport is set to TCP in `start_recognition.py` through `OPENCV_FFMPEG_CAPTURE_OPTIONS`.
 - Generated files such as `.db` files, snapshots, and local credentials should normally stay out of version control.
 
 ## Security Notes
@@ -168,9 +168,3 @@ This project stores camera URLs, Telegram tokens, chat IDs, and dashboard creden
 
 
 Before sharing or committing the project, remove real tokens, passwords, chat IDs, and RTSP credentials.
-
-Output example:
-saved photos on hdd looks like:
-![Alt text](path/to/image.png)
-bot in Telegram sends a detection pic into chat:
-[video]
