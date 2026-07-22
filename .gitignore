@@ -3,6 +3,7 @@
 /photos/
 /photos — копия/
 /system_settings/
+/__pycache__/
 .gitignore
 bot.db
 Bot_credentials.py
